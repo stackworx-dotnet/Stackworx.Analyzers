@@ -20,7 +20,7 @@ public class NamespaceInternalAnalyzerTests
         root = true
 
         [*.cs]
-        dotnet_code_quality.Stackworx.Analyzers.NamespaceInternal.root_namespaces = Contoso.Features
+        dotnet_code_quality.Stackworx.Analyzers.feature_namespaces = Contoso.Features
         dotnet_code_quality.NSINT.root_namespaces = Contoso.Features
 
         # Make violations errors for tests (you can change this as needed)
@@ -34,7 +34,7 @@ public class NamespaceInternalAnalyzerTests
         root = true
 
         [*.cs]
-        dotnet_code_quality.Stackworx.Analyzers.NamespaceInternal.root_namespaces = Contoso.Features
+        dotnet_code_quality.Stackworx.Analyzers.feature_namespaces = Contoso.Features
         build_property.IsTestProject = true
 
         dotnet_diagnostic.SW101.severity = error

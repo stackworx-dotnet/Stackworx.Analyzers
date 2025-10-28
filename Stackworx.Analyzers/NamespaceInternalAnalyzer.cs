@@ -297,7 +297,7 @@ public sealed class NamespaceInternalAnalyzer : DiagnosticAnalyzer
             
             // dotnet_code_quality.stackworx.analyzers.namespaceinternal.root_namespaces
             // 1) Preferred: dotnet_code_quality.NamespaceInternal.root_namespaces
-            var roots = ReadMulti(treeOptions, "dotnet_code_quality.stackworx.analyzers.NamespaceInternal.root_namespaces");
+            var roots = ReadMulti(treeOptions, "dotnet_code_quality.stackworx.analyzers.feature_namespaces");
 
             // 2) Fallback (alternate key): dotnet_diagnostic.NSINT.root_namespaces
             if (roots.IsDefaultOrEmpty)
