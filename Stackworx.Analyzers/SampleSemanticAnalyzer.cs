@@ -1,3 +1,4 @@
+/*
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -105,3 +106,4 @@ public class SampleSemanticAnalyzer : DiagnosticAnalyzer
         context.ReportDiagnostic(diagnostic);
     }
 }
+*/

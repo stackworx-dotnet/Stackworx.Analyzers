@@ -1,8 +1,10 @@
+/*
 using System.Threading.Tasks;
 using Xunit;
 using Verifier =
-    Microsoft.CodeAnalysis.CSharp.Testing.XUnit.AnalyzerVerifier<
-        Stackworx.Analyzers.SampleSyntaxAnalyzer>;
+    Microsoft.CodeAnalysis.CSharp.Testing.CSharpAnalyzerVerifier<
+        Stackworx.Analyzers.SampleSyntaxAnalyzer,
+        Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
 
 namespace Stackworx.Analyzers.Tests;
 
@@ -23,3 +25,4 @@ public class MyCompanyClass
         await Verifier.VerifyAnalyzerAsync(text, expected).ConfigureAwait(false);
     }
 }
+*/

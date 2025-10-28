@@ -1,3 +1,4 @@
+/*
 using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
@@ -84,3 +85,4 @@ public class SampleCodeFixProvider : CodeFixProvider
         return newSolution;
     }
 }
+*/

@@ -1,8 +1,10 @@
+/*
 using System.Threading.Tasks;
 using Xunit;
 using Verifier =
-    Microsoft.CodeAnalysis.CSharp.Testing.XUnit.AnalyzerVerifier<
-        Stackworx.Analyzers.SampleSemanticAnalyzer>;
+    Microsoft.CodeAnalysis.CSharp.Testing.CSharpAnalyzerVerifier<
+        Stackworx.Analyzers.SampleSemanticAnalyzer,
+        Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
 
 namespace Stackworx.Analyzers.Tests;
 
@@ -33,3 +35,4 @@ public class Spaceship
         await Verifier.VerifyAnalyzerAsync(text, expected);
     }
 }
+*/

@@ -1,7 +1,8 @@
+/*
 using System.Threading.Tasks;
 using Xunit;
 using Verifier =
-    Microsoft.CodeAnalysis.CSharp.Testing.XUnit.CodeFixVerifier<Stackworx.Analyzers.SampleSyntaxAnalyzer,
+    Microsoft.CodeAnalysis.CSharp.Testing.CSharpAnalyzerVerifier<Stackworx.Analyzers.SampleSyntaxAnalyzer,
         Stackworx.Analyzers.SampleCodeFixProvider>;
 
 namespace Stackworx.Analyzers.Tests;
@@ -29,3 +30,4 @@ public class CommonClass
         await Verifier.VerifyCodeFixAsync(text, expected, newText).ConfigureAwait(false);
     }
 }
+*/

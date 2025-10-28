@@ -1,0 +1,1 @@
+dotnet_code_quality.NSINT.root_namespaces = Stackworx.Analyzers.Sample.Features;
