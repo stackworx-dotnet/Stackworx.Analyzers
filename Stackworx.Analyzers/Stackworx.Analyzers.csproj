@@ -4,7 +4,7 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
-        <Version>0.0.1-preview.2</Version>
+        <Version>0.0.1-preview.3</Version>
 
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsRoslynComponent>true</IsRoslynComponent>
@@ -14,6 +14,8 @@
     </PropertyGroup>
     
     <ItemGroup>
+        <!-- https://github.com/dotnet/roslyn-analyzers/issues/7438#issuecomment-3351205949 -->
+<!--        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.14.0" />-->
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
