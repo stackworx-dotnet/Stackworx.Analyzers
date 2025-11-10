@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class GraphQLStaticExtensionMethodAnalyzer : DiagnosticAnalyzer
 {
+    // TODO: there is an alternative solution to make the extension class astic
     public static readonly DiagnosticDescriptor ParentOnStaticMethodRule = new(
         id: "SWGQL01",
         title: "Field extension methods cannot be static",
@@ -16,7 +17,7 @@ public sealed class GraphQLStaticExtensionMethodAnalyzer : DiagnosticAnalyzer
         "Field extension method '{0}' cannot be static. Make it an instance method.",
         category: "GraphQL.Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true,
+        isEnabledByDefault: false,
         description: "GraphQL field extension methods should not be declared static.");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
