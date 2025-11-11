@@ -3,7 +3,7 @@ import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Stackworx Analyzers',
+  title: 'Stackworx | Analyzers',
   tagline: 'Stackworx Custom Analyzers',
   favicon: 'img/favicon.ico',
 
