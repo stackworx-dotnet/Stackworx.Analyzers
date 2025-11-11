@@ -1,6 +1,6 @@
 # Read Me
 
-![NuGet Version](https://img.shields.io/nuget/v/Stackworx.Analyzers)
+[![NuGet Version](https://img.shields.io/nuget/v/Stackworx.Analyzers)](https://www.nuget.org/packages/Stackworx.Analyzers/)
 
 Collection of Analyzers to improve code quality and avoid specific bugs
 
