@@ -70,6 +70,6 @@ You should see warnings or errors from the analyzers in your build output, depen
 
 ## Next Steps
 
-- Review the [Rules Overview](../rules/overview) to understand what each analyzer does
-- Check individual [rule documentation](../rules/overview#all-rules) for detailed information
+- Review the [Rules Overview](/docs/rules/overview) to understand what each analyzer does
+- Check individual [rule documentation](/docs/rules/overview#all-rules) for detailed information
 - Configure rules in your `.editorconfig` to match your project's requirements
