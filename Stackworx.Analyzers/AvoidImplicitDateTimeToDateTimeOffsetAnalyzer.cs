@@ -44,30 +44,41 @@ public sealed class AvoidImplicitDateTimeToDateTimeOffsetAnalyzer : DiagnosticAn
     {
         var conv = (IConversionOperation)ctx.Operation;
 
-        // Only care about implicit conversions in source code (not compiler-generated)
+        // Only flag implicit, user-code conversions (not compiler generated).
         if (!conv.IsImplicit)
-        {
             return;
-        }
 
         var from = conv.Operand?.Type;
         var to = conv.Type;
-
-        if (from == null || to == null)
-        {
+        if (from is null || to is null)
             return;
-        }
 
-        if (IsSystemDateTime(from) && IsSystemDateTimeOffset(to))
+        // Resolve canonical symbols once per callback
+        var dtSymbol = ctx.Compilation.GetSpecialType(SpecialType.System_DateTime);
+        var dtoSymbol = ctx.Compilation.GetTypeByMetadataName("System.DateTimeOffset");
+        if (dtoSymbol is null)
+            return; // defensive: target framework without DTO
+
+        if (IsTypeOrNullableOf(from, dtSymbol) && IsTypeOrNullableOf(to, dtoSymbol))
         {
             ctx.ReportDiagnostic(Diagnostic.Create(Rule, conv.Syntax.GetLocation()));
         }
     }
 
-    private static bool IsSystemDateTime(ITypeSymbol type) =>
-        type.SpecialType == SpecialType.System_DateTime;
+    private static bool IsTypeOrNullableOf(ITypeSymbol type, ITypeSymbol target)
+    {
+        // direct match
+        if (SymbolEqualityComparer.Default.Equals(type, target))
+            return true;
 
-    private static bool IsSystemDateTimeOffset(ITypeSymbol type) =>
-        type.Name == "DateTimeOffset" &&
-        type.ContainingNamespace?.ToDisplayString() == "System";
+        // Nullable<T> match
+        if (type is INamedTypeSymbol named &&
+            named.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T &&
+            named.TypeArguments.Length == 1)
+        {
+            return SymbolEqualityComparer.Default.Equals(named.TypeArguments[0], target);
+        }
+
+        return false;
+    }
 }

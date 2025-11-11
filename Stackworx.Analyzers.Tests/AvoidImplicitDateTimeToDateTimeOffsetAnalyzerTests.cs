@@ -33,6 +33,52 @@ class C
     }
 
     [Fact]
+    public async Task Flags_SourceNullable_Implicit_Assignment()
+    {
+        const string src = @"
+using System;
+
+class C
+{
+    void M()
+    {
+        DateTime? dt = DateTime.Now;
+        DateTimeOffset dto = {|#0:dt!.Value|}; // implicit conversion
+    }
+}
+";
+
+        var expected = Verifier
+            .Diagnostic(Stackworx.Analyzers.AvoidImplicitDateTimeToDateTimeOffsetAnalyzer.Rule)
+            .WithLocation(0);
+
+        await Verifier.VerifyAnalyzerAsync(src, expected);
+    }
+
+    [Fact]
+    public async Task Flags_TargetNullable_Implicit_Assignment()
+    {
+        const string src = @"
+using System;
+
+class C
+{
+    void M()
+    {
+        DateTime dt = DateTime.Now;
+        DateTimeOffset? dto = {|#0:dt|}; // implicit conversion
+    }
+}
+";
+
+        var expected = Verifier
+            .Diagnostic(Stackworx.Analyzers.AvoidImplicitDateTimeToDateTimeOffsetAnalyzer.Rule)
+            .WithLocation(0);
+
+        await Verifier.VerifyAnalyzerAsync(src, expected);
+    }
+
+    [Fact]
     public async Task Flags_Implicit_Argument_Passing()
     {
         const string src = @"
