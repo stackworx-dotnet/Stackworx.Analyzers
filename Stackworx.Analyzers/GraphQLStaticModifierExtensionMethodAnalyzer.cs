@@ -17,7 +17,7 @@ public sealed class GraphQLStaticModifierExtensionMethodAnalyzer : DiagnosticAna
         "Field extension method '{0}' cannot be static because its containing class '{1}' is not static. Make it an instance method.",
         category: "GraphQL.Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: false,
+        isEnabledByDefault: true,
         description: "GraphQL field extension methods must be instance methods when declared in non-static classes.");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
