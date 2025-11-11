@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'Stackworx | Analyzers',
   tagline: 'Stackworx Custom Analyzers',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/favicon.png',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -52,7 +52,7 @@ const config: Config = {
       title: 'Stackworx Analyzers',
       logo: {
         alt: 'Stackworx Analyzers Logo',
-        src: 'img/logo.svg',
+        src: 'img/logo.png',
       },
       items: [
         {

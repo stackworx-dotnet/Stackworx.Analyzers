@@ -5,14 +5,12 @@ import styles from './styles.module.css';
 
 type FeatureItem = {
   title: string;
-  Svg: React.ComponentType<React.ComponentProps<'svg'>>;
   description: ReactNode;
 };
 
 const FeatureList: FeatureItem[] = [
   {
     title: '🎯 Architectural Enforcement',
-    Svg: require('@site/static/img/logo.svg').default,
     description: (
       <>
         Enforce clean architecture patterns and maintain clear feature boundaries
@@ -23,7 +21,6 @@ const FeatureList: FeatureItem[] = [
   },
   {
     title: '⚡ GraphQL Optimization',
-    Svg: require('@site/static/img/logo.svg').default,
     description: (
       <>
         Specialized rules for HotChocolate GraphQL development including DataLoader
@@ -33,7 +30,6 @@ const FeatureList: FeatureItem[] = [
   },
   {
     title: '🛡️ Type Safety',
-    Svg: require('@site/static/img/logo.svg').default,
     description: (
       <>
         Catch common pitfalls with DateTime handling, implicit conversions, and
@@ -43,12 +39,9 @@ const FeatureList: FeatureItem[] = [
   },
 ];
 
-function Feature({title, Svg, description}: FeatureItem) {
+function Feature({title, description}: FeatureItem) {
   return (
     <div className={clsx('col col--4')}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
       <div className="text--center padding-horiz--md">
         <Heading as="h3">{title}</Heading>
         <p>{description}</p>
