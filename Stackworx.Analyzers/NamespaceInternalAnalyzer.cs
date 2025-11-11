@@ -134,7 +134,10 @@ public sealed class NamespaceInternalAnalyzer : DiagnosticAnalyzer
         // Symbol for name expression (type, member, etc.)
         var symbol = model.GetSymbolInfo(node).Symbol
                      ?? model.GetTypeInfo(node).Type as ISymbol
+                     // This can be a false positive
+#pragma warning disable RS1039
                      ?? model.GetDeclaredSymbol(node);
+#pragma warning restore RS1039
         if (symbol is null)
         {
             violation = null;
