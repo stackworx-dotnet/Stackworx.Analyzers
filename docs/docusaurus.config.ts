@@ -53,6 +53,8 @@ const config: Config = {
       logo: {
         alt: 'Stackworx Analyzers Logo',
         src: 'img/logo.png',
+        // Optional: alternate logo for dark mode
+        srcDark: 'img/logo.dark.png',
       },
       items: [
         {
