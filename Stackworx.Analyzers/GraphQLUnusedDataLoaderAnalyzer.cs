@@ -15,7 +15,7 @@ public sealed class GraphQLUnusedDataLoaderAnalyzer : DiagnosticAnalyzer
         title: "DataLoader interface appears unused",
         messageFormat: "DataLoader interface '{0}' implements GreenDonut.IDataLoader<,> but is not referenced in this compilation",
         category: "GraphQL.Usage",
-        defaultSeverity: DiagnosticSeverity.Info,
+        defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description:
         "Flags interfaces extending GreenDonut.IDataLoader that appear to be unused in the current compilation.",

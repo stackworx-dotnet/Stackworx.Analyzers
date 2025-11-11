@@ -83,7 +83,7 @@ public interface IUsedLoader
 
 public class UsesLoader
 {
-    private IUsedLoader _loader; // Only this one is referenced
+    public IUsedLoader GetLoader() => throw new NotImplementedException();
 }
 ";
 
