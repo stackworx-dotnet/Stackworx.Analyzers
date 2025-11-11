@@ -5,10 +5,10 @@ using Microsoft.CodeAnalysis;
 using Xunit;
 using Verifier =
     Microsoft.CodeAnalysis.CSharp.Testing.CSharpAnalyzerVerifier<
-        Stackworx.Analyzers.GraphQLStaticExtensionMethodAnalyzer,
+        Stackworx.Analyzers.GraphQLStaticModifierExtensionMethodAnalyzer,
         Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
 
-public class StaticParentAnalyzerTests
+public class StaticModfierFieldExtensionAnalyzerTests
 {
     [Fact]
     public async Task ReportsError_WhenStaticMethodHasParentParameter()
@@ -28,7 +28,7 @@ namespace HotChocolate
 public record Author;
 public record Book;
 
-public static class QueryResolvers
+public class QueryResolvers
 {
     public static async Task<Author> {|#0:GetAuthorAsync|}(
         [Parent] Book parent,
@@ -40,9 +40,9 @@ public static class QueryResolvers
 }
 ";
 
-        var expected = Verifier.Diagnostic(GraphQLStaticExtensionMethodAnalyzer.ParentOnStaticMethodRule)
+        var expected = Verifier.Diagnostic(GraphQLStaticModifierExtensionMethodAnalyzer.StaticMethodInNonStaticClassRule)
             // .WithMessage("Field extension method 'GetAuthorAsync' cannot be static. Make it an instance method.")
-            .WithArguments("GetAuthorAsync")
+            .WithArguments("GetAuthorAsync", "QueryResolvers")
             .WithLocation(0)
             
             .WithSeverity(DiagnosticSeverity.Error);
