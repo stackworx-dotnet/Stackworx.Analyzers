@@ -56,8 +56,7 @@ public sealed class GraphQLUnusedDataLoaderAnalyzer : DiagnosticAnalyzer
         // Track usages of those interfaces across syntax nodes
         context.RegisterSyntaxNodeAction(c => TrackTypeSyntaxUsage(c, state),
             SyntaxKind.IdentifierName,
-            SyntaxKind.QualifiedName,
-            SyntaxKind.GenericName);
+            SyntaxKind.QualifiedName);
 
         // At compilation end, report any interfaces that were never referenced
         context.RegisterCompilationEndAction(c =>
@@ -79,7 +78,9 @@ public sealed class GraphQLUnusedDataLoaderAnalyzer : DiagnosticAnalyzer
         });
     }
 
-    private static void CollectDataLoaderInterfaces(SymbolAnalysisContext context, INamedTypeSymbol iDataLoader2,
+    private static void CollectDataLoaderInterfaces(
+        SymbolAnalysisContext context,
+        INamedTypeSymbol iDataLoader2,
         DataLoaderUsageState state)
     {
         var symbol = (INamedTypeSymbol)context.Symbol;
@@ -108,75 +109,55 @@ public sealed class GraphQLUnusedDataLoaderAnalyzer : DiagnosticAnalyzer
     private static void TrackTypeSyntaxUsage(SyntaxNodeAnalysisContext context, DataLoaderUsageState state)
     {
         if (state.Candidates.IsEmpty)
+        {
             return;
+        }
 
         // Ignore occurrences that are part of a base-type list (e.g. 'class C : IMyDataLoader')
         // because class/interface declarations implementing/extending the interface shouldn't
         // be considered a "usage" for the purpose of detecting unused IDataLoader interfaces.
         if (context.Node.Ancestors().Any(a => a is BaseListSyntax || a is SimpleBaseTypeSyntax))
-            return;
-
-        var model = context.SemanticModel;
-        var symbol = model.GetSymbolInfo(context.Node, context.CancellationToken).Symbol as INamedTypeSymbol;
-        if (symbol is null)
-            return;
-
-        // Exclude usages that occur as type-arguments to IRequestExecutorBuilder.AddDataLoader<TInterface, TImpl>()
-        // i.e. builder.AddDataLoader<IMyDataLoader, MyDataLoader>();
-        // In that scenario the interface type argument should not be considered a usage for our purposes.
-        var node = context.Node;
-        if (node.Parent is TypeArgumentListSyntax typeArgList &&
-            typeArgList.Parent is GenericNameSyntax genericName &&
-            genericName.Parent is ExpressionSyntax expr)
         {
-            // Walk up to InvocationExpression if present
-            if (expr.Parent is InvocationExpressionSyntax invocation)
-            {
-                // Determine the method name and receiver type
-                var invokedSymbol = model.GetSymbolInfo(invocation.Expression, context.CancellationToken).Symbol;
-                if (invokedSymbol is IMethodSymbol methodSym)
-                {
-                    if (methodSym.Name == "AddDataLoader")
-                    {
-                        // Check receiver implements IRequestExecutorBuilder or the method's containing type name
-                        var receiver = methodSym.ReceiverType ?? methodSym.ContainingType;
-                        if (receiver != null && receiver.Name == "IRequestExecutorBuilder")
-                        {
-                            // don't count this as a usage
-                            return;
-                        }
-                    }
-                }
-            }
+            return;
         }
 
-        // If this symbol is (or reduces to) one of our candidate interfaces, mark it as used.
-        // Only consider direct references to interface symbols or references that resolve to an
-        // interface type. Don't count class declarations that implement the interface as usages
-        // (e.g. 'class MyDataLoader : IMyDataLoader') because we care about references to the
-        // interface type, not implementations.
+        var symbol = context.SemanticModel.GetSymbolInfo(context.Node).Symbol;
+        if (symbol is not INamedTypeSymbol namedType)
+        {
+            return;
+        }
+        
+        // Ignore Generic References 
+        // like builder.AddDataLoader<,>
+        // if (context.Node.Parent is TypeArgumentListSyntax)
+        // Handle global:: etc.
+        if (context.Node.Ancestors().Any(a => a is TypeArgumentListSyntax))
+        {
+            return;
+        }
+
+        // Skip if this symbol *is* the interface declaration itself
+        if (namedType.Locations.Any(loc =>
+                loc.SourceTree == context.Node.SyntaxTree &&
+                loc.SourceSpan.Contains(context.Node.Span)))
+        {
+            return;
+        }
+
+        // If this is one of our candidate DataLoader interfaces, mark as used
+        if (state.Candidates.ContainsKey(namedType))
+        {
+            state.Candidates[namedType] = true;
+            return;
+        }
+
+        // Handle constructed/aliased forms of the same interface
         foreach (var candidate in state.Candidates.Keys)
         {
-            // Direct match to the interface symbol
-            if (SymbolEqualityComparer.Default.Equals(symbol, candidate) ||
-                SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, candidate))
+            if (SymbolEqualityComparer.Default.Equals(namedType.OriginalDefinition, candidate))
             {
-                if (symbol.TypeKind == TypeKind.Interface)
-                {
-                    state.Candidates[candidate] = true;
-                    return;
-                }
-            }
-
-            // If the symbol is an interface or a constructed generic of an interface,
-            // check its AllInterfaces chain for the candidate.
-            if (symbol.TypeKind == TypeKind.Interface || symbol.TypeKind == TypeKind.TypeParameter)
-            {
-                if (symbol.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, candidate)))
-                {
-                    state.Candidates[candidate] = true;
-                    return;
-                }
+                state.Candidates[candidate] = true;
+                break;
             }
         }
     }
