@@ -6,6 +6,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class GraphQLUnusedDataLoaderAnalyzer : DiagnosticAnalyzer
@@ -109,26 +110,73 @@ public sealed class GraphQLUnusedDataLoaderAnalyzer : DiagnosticAnalyzer
         if (state.Candidates.IsEmpty)
             return;
 
+        // Ignore occurrences that are part of a base-type list (e.g. 'class C : IMyDataLoader')
+        // because class/interface declarations implementing/extending the interface shouldn't
+        // be considered a "usage" for the purpose of detecting unused IDataLoader interfaces.
+        if (context.Node.Ancestors().Any(a => a is BaseListSyntax || a is SimpleBaseTypeSyntax))
+            return;
+
         var model = context.SemanticModel;
         var symbol = model.GetSymbolInfo(context.Node, context.CancellationToken).Symbol as INamedTypeSymbol;
         if (symbol is null)
             return;
 
-        // If this symbol is (or reduces to) one of our candidate interfaces, mark it as used
+        // Exclude usages that occur as type-arguments to IRequestExecutorBuilder.AddDataLoader<TInterface, TImpl>()
+        // i.e. builder.AddDataLoader<IMyDataLoader, MyDataLoader>();
+        // In that scenario the interface type argument should not be considered a usage for our purposes.
+        var node = context.Node;
+        if (node.Parent is TypeArgumentListSyntax typeArgList &&
+            typeArgList.Parent is GenericNameSyntax genericName &&
+            genericName.Parent is ExpressionSyntax expr)
+        {
+            // Walk up to InvocationExpression if present
+            if (expr.Parent is InvocationExpressionSyntax invocation)
+            {
+                // Determine the method name and receiver type
+                var invokedSymbol = model.GetSymbolInfo(invocation.Expression, context.CancellationToken).Symbol;
+                if (invokedSymbol is IMethodSymbol methodSym)
+                {
+                    if (methodSym.Name == "AddDataLoader")
+                    {
+                        // Check receiver implements IRequestExecutorBuilder or the method's containing type name
+                        var receiver = methodSym.ReceiverType ?? methodSym.ContainingType;
+                        if (receiver != null && receiver.Name == "IRequestExecutorBuilder")
+                        {
+                            // don't count this as a usage
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        // If this symbol is (or reduces to) one of our candidate interfaces, mark it as used.
+        // Only consider direct references to interface symbols or references that resolve to an
+        // interface type. Don't count class declarations that implement the interface as usages
+        // (e.g. 'class MyDataLoader : IMyDataLoader') because we care about references to the
+        // interface type, not implementations.
         foreach (var candidate in state.Candidates.Keys)
         {
+            // Direct match to the interface symbol
             if (SymbolEqualityComparer.Default.Equals(symbol, candidate) ||
                 SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, candidate))
             {
-                state.Candidates[candidate] = true;
-                return;
+                if (symbol.TypeKind == TypeKind.Interface)
+                {
+                    state.Candidates[candidate] = true;
+                    return;
+                }
             }
 
-            // Also consider constructed generic instantiations or aliasing
-            if (symbol.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, candidate)))
+            // If the symbol is an interface or a constructed generic of an interface,
+            // check its AllInterfaces chain for the candidate.
+            if (symbol.TypeKind == TypeKind.Interface || symbol.TypeKind == TypeKind.TypeParameter)
             {
-                state.Candidates[candidate] = true;
-                return;
+                if (symbol.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, candidate)))
+                {
+                    state.Candidates[candidate] = true;
+                    return;
+                }
             }
         }
     }

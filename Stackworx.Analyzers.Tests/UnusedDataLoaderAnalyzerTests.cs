@@ -34,6 +34,47 @@ public interface {|#0:MyDataLoader|}
 
         await Verifier.VerifyAnalyzerAsync(testCode, expected);
     }
+    
+    [Fact]
+    public async Task Reports_WhenIDataLoaderInterfaceIsUnused_ExcludingAddDataLoader()
+    {
+        const string testCode = @"
+using System;
+
+namespace GreenDonut
+{
+    public interface IDataLoader<TKey, TValue> { }
+}
+
+public record Author;
+
+public interface {|#0:IMyDataLoader|}
+    : GreenDonut.IDataLoader<Guid, Author>
+{
+}
+
+public interface IRequestExecutorBuilder {
+  public void AddDataLoader<T1, T2>();
+}
+
+public class MyDataLoader : IMyDataLoader;
+
+public static partial class SampleTypesRequestExecutorBuilderExtensions
+{
+    public static IRequestExecutorBuilder AddMyProjectTypes(this IRequestExecutorBuilder builder)
+    {
+        builder.AddDataLoader<IMyDataLoader, MyDataLoader>();
+        return builder;
+    }
+}
+";
+
+        var expected = Verifier.Diagnostic(GraphQLUnusedDataLoaderAnalyzer.UnusedDataLoaderInterfaceRule)
+            .WithArguments("IMyDataLoader")
+            .WithLocation(0);
+
+        await Verifier.VerifyAnalyzerAsync(testCode, expected);
+    }
 
     [Fact]
     public async Task DoesNotReport_WhenIDataLoaderInterfaceIsReferenced()
