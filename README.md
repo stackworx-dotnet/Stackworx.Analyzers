@@ -1,8 +1,11 @@
-# Read Me
+# Stackworx.Analyzers
 
 [![NuGet Version](https://img.shields.io/nuget/v/Stackworx.Analyzers)](https://www.nuget.org/packages/Stackworx.Analyzers/)
 
-Collection of Analyzers to improve code quality and avoid specific bugs
+Collection of Roslyn analyzers to improve code quality and avoid specific bugs.
+
+- Documentation website: https://stackworx-dotnet.github.io/Stackworx.Analyzers/
+- Package README (and full documentation): [`docs/README.md`](docs/README.md)
 
 ## Installation
 
@@ -12,16 +15,6 @@ dotnet add package Stackworx.Analyzers
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="Stackworx.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="Stackworx.Analyzers" Version="*" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 </ItemGroup>
 ```
-
-There in your editorconfig add the feaure_namespaces key:
-
-```.editorconfig
-dotnet_code_quality.Stackworx.Analyzers.feature_namespaces = MyCompany.Features
-```
-
-## Requirements
-
-The Feature linter only makes sense in combination with `IDE0161`
