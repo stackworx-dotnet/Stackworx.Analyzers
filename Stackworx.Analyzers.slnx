@@ -2,6 +2,7 @@
   <Folder Name="/Solution Items/">
     <File Path="README.md" />
   </Folder>
+  <Project Path="Stackworx.Analyzers.Fixes/Stackworx.Analyzers.Fixes.csproj" />
   <Project Path="Stackworx.Analyzers.Sample/Stackworx.Analyzers.Sample.csproj" />
   <Project Path="Stackworx.Analyzers.Tests/Stackworx.Analyzers.Tests.csproj" />
   <Project Path="Stackworx.Analyzers/Stackworx.Analyzers.csproj" />

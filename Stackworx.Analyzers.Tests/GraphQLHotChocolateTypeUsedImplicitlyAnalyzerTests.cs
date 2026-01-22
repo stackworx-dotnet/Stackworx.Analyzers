@@ -117,5 +117,60 @@ public class {|#0:MyObjectType|} : HotChocolate.Types.ObjectType
 
         await Verifier.VerifyAnalyzerAsync(testCode, expected);
     }
+
+    [Fact]
+    public async Task Reports_WhenDerivedFromEnumTypeMissingUsedImplicitly()
+    {
+        const string testCode = @"
+namespace JetBrains.Annotations
+{
+    [System.AttributeUsage(System.AttributeTargets.All, AllowMultiple = true)]
+    public sealed class UsedImplicitlyAttribute : System.Attribute { }
 }
 
+namespace HotChocolate.Types
+{
+    public class EnumType { }
+}
+
+public class {|#0:MyEnumType|} : HotChocolate.Types.EnumType
+{
+}
+";
+
+        var expected = Verifier.Diagnostic(GraphQLHotChocolateTypeUsedImplicitlyAnalyzer.MissingUsedImplicitlyRule)
+            .WithArguments("MyEnumType")
+            .WithLocation(0)
+            .WithSeverity(DiagnosticSeverity.Warning);
+
+        await Verifier.VerifyAnalyzerAsync(testCode, expected);
+    }
+
+    [Fact]
+    public async Task Reports_WhenDerivedFromFilterInputTypeMissingUsedImplicitly()
+    {
+        const string testCode = @"
+namespace JetBrains.Annotations
+{
+    [System.AttributeUsage(System.AttributeTargets.All, AllowMultiple = true)]
+    public sealed class UsedImplicitlyAttribute : System.Attribute { }
+}
+
+namespace HotChocolate.Data.Filters
+{
+    public class FilterInputType { }
+}
+
+public class {|#0:MyFilterInput|} : HotChocolate.Data.Filters.FilterInputType
+{
+}
+";
+
+        var expected = Verifier.Diagnostic(GraphQLHotChocolateTypeUsedImplicitlyAnalyzer.MissingUsedImplicitlyRule)
+            .WithArguments("MyFilterInput")
+            .WithLocation(0)
+            .WithSeverity(DiagnosticSeverity.Warning);
+
+        await Verifier.VerifyAnalyzerAsync(testCode, expected);
+    }
+}

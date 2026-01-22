@@ -140,7 +140,9 @@ public sealed class GraphQLHotChocolateTypeUsedImplicitlyAnalyzer : DiagnosticAn
                  || full.EndsWith("SubscriptionTypeAttribute", StringComparison.Ordinal)
                  || full.EndsWith("ObjectTypeAttribute", StringComparison.Ordinal)
                  || full.EndsWith("ExtendObjectTypeAttribute", StringComparison.Ordinal)
-                 || full.EndsWith("ExtendObjectType" , StringComparison.Ordinal)))
+                 || full.EndsWith("InputObjectTypeAttribute", StringComparison.Ordinal)
+                 || full.EndsWith("ExtendObjectType" , StringComparison.Ordinal)
+                 || full.EndsWith("InputObjectType", StringComparison.Ordinal)))
             {
                 return true;
             }
@@ -156,14 +158,34 @@ public sealed class GraphQLHotChocolateTypeUsedImplicitlyAnalyzer : DiagnosticAn
                 return true;
             }
 
-            var full = baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            if (full is "global::HotChocolate.Types.QueryType" or
-                "global::HotChocolate.Types.MutationType" or
-                "global::HotChocolate.Types.SubscriptionType" or
-                "global::HotChocolate.Types.ObjectType" or
-                "global::HotChocolate.Types.ExtendObjectType")
+            // Prefer metadata-based checks over string formatting.
+            // This works for both generic and non-generic variants.
+            var fullName = baseType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+            if (fullName is "HotChocolate.Types.QueryType" or
+                "HotChocolate.Types.MutationType" or
+                "HotChocolate.Types.SubscriptionType" or
+                "HotChocolate.Types.ObjectType" or
+                "HotChocolate.Types.ExtendObjectType" or
+                "HotChocolate.Types.InputObjectType" or
+                "HotChocolate.Types.EnumType" or
+                "HotChocolate.Data.Filters.FilterInputType")
             {
                 return true;
+            }
+
+            // Handle the common generic forms: ObjectType<T>, InputObjectType<T>, EnumType<T>, FilterInputType<T>
+            if (baseType.IsGenericType)
+            {
+                var genericDef = baseType.OriginalDefinition;
+                var genericDefName = genericDef.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+
+                if (genericDefName is "HotChocolate.Types.ObjectType" or
+                    "HotChocolate.Types.InputObjectType" or
+                    "HotChocolate.Types.EnumType" or
+                    "HotChocolate.Data.Filters.FilterInputType")
+                {
+                    return true;
+                }
             }
         }
 
@@ -174,10 +196,11 @@ public sealed class GraphQLHotChocolateTypeUsedImplicitlyAnalyzer : DiagnosticAn
                 "MutationTypeAttribute" or "MutationType" or
                 "SubscriptionTypeAttribute" or "SubscriptionType" or
                 "ObjectTypeAttribute" or "ObjectType" or
-                "ExtendObjectTypeAttribute" or "ExtendObjectType";
+                "ExtendObjectTypeAttribute" or "ExtendObjectType" or
+                "InputObjectTypeAttribute" or "InputObjectType";
 
         static bool IsHotChocolateTypeBaseName(string name) =>
-            name is "QueryType" or "MutationType" or "SubscriptionType" or "ObjectType" or "ExtendObjectType";
+            name is "QueryType" or "MutationType" or "SubscriptionType" or "ObjectType" or "ExtendObjectType" or "InputObjectType";
 
         static ImmutableArray<INamedTypeSymbol> EnumerateBaseTypes(INamedTypeSymbol symbol)
         {
@@ -192,4 +215,3 @@ public sealed class GraphQLHotChocolateTypeUsedImplicitlyAnalyzer : DiagnosticAn
         }
     }
 }
-

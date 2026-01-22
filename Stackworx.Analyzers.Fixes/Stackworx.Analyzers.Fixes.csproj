@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <Version>0.0.1-preview.1</Version>
+
+        <IsRoslynComponent>true</IsRoslynComponent>
+        <NoWarn>$(NoWarn);RS2007</NoWarn>
+        <RootNamespace>Stackworx.Analyzers.Fixes</RootNamespace>
+        <AssemblyName>Stackworx.Analyzers.Fixes</AssemblyName>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Use older version to prevent conflicts -->
+        <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.3.0" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.0" PrivateAssets="all" />
+        <PackageReference Include="PolySharp" Version="1.15.0">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <!-- Code fix dependencies -->
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.3.0" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.3.0" PrivateAssets="all" />
+        <PackageReference Include="System.Composition.AttributedModel" Version="7.0.0" PrivateAssets="all" />
+        <PackageReference Include="System.Composition.Runtime" Version="7.0.0" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Stackworx.Analyzers\Stackworx.Analyzers.csproj" />
+    </ItemGroup>
+</Project>
