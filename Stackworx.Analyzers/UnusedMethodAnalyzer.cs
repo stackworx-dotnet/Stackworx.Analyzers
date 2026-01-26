@@ -45,7 +45,10 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
         context.RegisterSymbolAction(c => CollectCandidate((IMethodSymbol)c.Symbol, state), SymbolKind.Method);
 
         // Mark candidates as used based on method references in the compilation.
-        context.RegisterOperationAction(c => MarkUsed(c, state), OperationKind.Invocation, OperationKind.MethodReference);
+        context.RegisterOperationAction(c => MarkUsed(c, state),
+            OperationKind.Invocation,
+            OperationKind.MethodReference,
+            OperationKind.DelegateCreation);
 
         context.RegisterCompilationEndAction(c => ReportUnused(c, state));
     }
@@ -79,7 +82,7 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
         }
 
         // Ignore Dispose pattern: Dispose / DisposeAsync are commonly called indirectly (using/await using/DI/framework/containers).
-        if (IsDisposeMethod(method) || IsDisposeAsyncMethod(method))
+        if (IsDisposeMethod(method) || IsDisposeAsyncMethod(method) || IsHostedServiceLifecycleMethod(method))
         {
             return;
         }
@@ -125,6 +128,11 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
         {
             IInvocationOperation invocation => invocation.TargetMethod,
             IMethodReferenceOperation methodRef => methodRef.Method,
+            IDelegateCreationOperation del => del.Target switch
+            {
+                IMethodReferenceOperation mr => mr.Method,
+                _ => null
+            },
             _ => null
         };
 
@@ -294,5 +302,43 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
 
         // No SpecialType for IAsyncDisposable, so compare by metadata name.
         return containing.AllInterfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System.IAsyncDisposable");
+    }
+
+    private static bool IsHostedServiceLifecycleMethod(IMethodSymbol method)
+    {
+        if (method.Parameters.Length != 1)
+        {
+            return false;
+        }
+
+        if (method.Name is not ("StartAsync" or "StopAsync"))
+        {
+            return false;
+        }
+
+        // StartAsync/StopAsync return Task.
+        if (method.ReturnType is not INamedTypeSymbol returnType
+            || returnType.ContainingNamespace.ToDisplayString() != "System.Threading.Tasks"
+            || returnType.Name != "Task")
+        {
+            return false;
+        }
+
+        // Parameter is CancellationToken.
+        var p0 = method.Parameters[0].Type;
+        if (p0.ContainingNamespace.ToDisplayString() != "System.Threading"
+            || p0.Name != "CancellationToken")
+        {
+            return false;
+        }
+
+        var containing = method.ContainingType;
+        if (containing is null)
+        {
+            return false;
+        }
+
+        // Compare by metadata name to avoid needing the hosting ref in the analyzer project.
+        return containing.AllInterfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::Microsoft.Extensions.Hosting.IHostedService");
     }
 }

@@ -192,4 +192,70 @@ public class UnusedMethodAnalyzerTests
 
         await test.RunAsync();
     }
+
+    [Fact]
+    public async Task DoesNotReport_WhenClassImplementsIHostedServiceAndStartAsyncIsNeverReferenced()
+    {
+        const string source =
+            """
+            using System.Threading;
+            using System.Threading.Tasks;
+            
+            namespace Microsoft.Extensions.Hosting
+            {
+                public interface IHostedService
+                {
+                    // Removed all these cause false positives
+                    // Task StartAsync(CancellationToken cancellationToken);
+                    // Task StopAsync(CancellationToken cancellationToken);
+                }
+            }
+
+            public sealed class Worker : Microsoft.Extensions.Hosting.IHostedService
+            {
+                public Task StartAsync(CancellationToken cancellationToken)
+                {
+                    return Task.CompletedTask;
+                }
+
+                public Task StopAsync(CancellationToken cancellationToken)
+                {
+                    return Task.CompletedTask;
+                }
+            }
+            """;
+
+        var test = CreateTest(source);
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task DoesNotReport_WhenMethodIsUsedAsDelegate()
+    {
+        const string source =
+            """
+            using System;
+            
+            namespace JetBrains.Annotations
+            {
+                [System.AttributeUsage(System.AttributeTargets.All, AllowMultiple = true)]
+                public sealed class PublicAPIAttribute : System.Attribute { }
+            }
+
+            public class C
+            {
+                public void M() { }
+
+                [JetBrains.Annotations.PublicAPI]
+                public void Use()
+                {
+                    Action a = this.M;
+                    a();
+                }
+            }
+            """;
+
+        var test = CreateTest(source);
+        await test.RunAsync();
+    }
 }
