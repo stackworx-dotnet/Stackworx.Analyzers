@@ -49,7 +49,7 @@ You can enable, disable, or change the severity of individual rules. For example
 ```ini
 [*.cs]
 # Disable a specific rule
-dotnet_diagnostic.SW0001.severity = none
+dotnet_diagnostic.SW001.severity = none
 
 # Change a rule to error
 dotnet_diagnostic.SWGQL03.severity = error

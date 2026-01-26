@@ -2,11 +2,11 @@
 sidebar_position: 2
 ---
 
-# SW0001: Avoid implicit DateTime → DateTimeOffset conversion
+# SW001: Avoid implicit DateTime → DateTimeOffset conversion
 
 ## Overview
 
-**Rule ID:** SW0001  
+**Rule ID:** SW001  
 **Category:** Usage  
 **Severity:** Warning  
 **Status:** Enabled by default
@@ -29,7 +29,7 @@ When you implicitly convert a `DateTime` to `DateTimeOffset`:
 
 ```csharp
 DateTime dt = DateTime.Now;
-DateTimeOffset dto = dt;  // ⚠️ Implicit conversion - SW0001
+DateTimeOffset dto = dt;  // ⚠️ Implicit conversion - SW001
 ```
 
 The conversion doesn't preserve or communicate intent about:
@@ -82,14 +82,14 @@ This rule is enabled by default. To disable it, add to your `.editorconfig`:
 
 ```ini
 [*.cs]
-dotnet_diagnostic.SW0001.severity = none
+dotnet_diagnostic.SW001.severity = none
 ```
 
 To change severity to error:
 
 ```ini
 [*.cs]
-dotnet_diagnostic.SW0001.severity = error
+dotnet_diagnostic.SW001.severity = error
 ```
 
 ## Related Rules

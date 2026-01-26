@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Operations;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class AvoidImplicitDateTimeToDateTimeOffsetAnalyzer : DiagnosticAnalyzer
 {
-    private const string DiagnosticId = "SW0001";
+    private const string DiagnosticId = "SW001";
 
     private static readonly LocalizableString Title =
         "Avoid implicit DateTime → DateTimeOffset conversion";
