@@ -132,4 +132,39 @@ public class UnusedMethodAnalyzerTests
 
         await test.RunAsync();
     }
+
+    [Fact]
+    public async Task DoesNotReport_WhenClassImplementsIDisposableAndDisposeIsNeverReferenced()
+    {
+        const string source =
+            """
+            using System;
+
+            public class C : IDisposable
+            {
+                public void Dispose() { }
+            }
+            """;
+
+        var test = CreateTest(source);
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task DoesNotReport_WhenClassImplementsIAsyncDisposableAndDisposeAsyncIsNeverReferenced()
+    {
+        const string source =
+            """
+            using System;
+            using System.Threading.Tasks;
+
+            public class C : IAsyncDisposable
+            {
+                public ValueTask DisposeAsync() => default;
+            }
+            """;
+
+        var test = CreateTest(source);
+        await test.RunAsync();
+    }
 }

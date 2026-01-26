@@ -63,8 +63,21 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // Top-level statements generate a synthetic 'Program' type.
+        // We ignore methods in that type to avoid noisy diagnostics for minimal apps.
+        if (method.ContainingType is { Name: "Program", IsImplicitlyDeclared: true })
+        {
+            return;
+        }
+
         // Only ordinary methods (exclude ctors, accessors, operators, local functions, etc.).
         if (method.MethodKind != MethodKind.Ordinary)
+        {
+            return;
+        }
+
+        // Ignore Dispose pattern: Dispose / DisposeAsync are commonly called indirectly (using/await using/DI/framework/containers).
+        if (IsDisposeMethod(method) || IsDisposeAsyncMethod(method))
         {
             return;
         }
@@ -81,8 +94,7 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // Ignore Dispose / async state machine patterns? (kept minimal per request)
-
+        // Respect JetBrains annotations.
         if (HasJetBrainsPublicApiOrUsedImplicitly(method) || HasJetBrainsPublicApiOrUsedImplicitly(method.ContainingType))
         {
             return;
@@ -230,5 +242,55 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
         }
 
         return false;
+    }
+
+    private static bool IsDisposeMethod(IMethodSymbol method)
+    {
+        if (method.Name != "Dispose" || method.Parameters.Length != 0)
+        {
+            return false;
+        }
+
+        // Treat explicit interface implementation and normal implementation the same.
+        var containing = method.ContainingType;
+        if (containing is null)
+        {
+            return false;
+        }
+
+        foreach (var iface in containing.AllInterfaces)
+        {
+            if (iface.SpecialType == SpecialType.System_IDisposable)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsDisposeAsyncMethod(IMethodSymbol method)
+    {
+        if (method.Name != "DisposeAsync" || method.Parameters.Length != 0)
+        {
+            return false;
+        }
+
+        // IAsyncDisposable.DisposeAsync returns ValueTask.
+        if (method.ReturnType is not INamedTypeSymbol named
+            || named.ContainingNamespace.ToDisplayString() != "System.Threading.Tasks"
+            || named.Name != "ValueTask")
+        {
+            return false;
+        }
+
+        var containing = method.ContainingType;
+        if (containing is null)
+        {
+            return false;
+        }
+
+        // No SpecialType for IAsyncDisposable, so compare by metadata name.
+        return containing.AllInterfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System.IAsyncDisposable");
     }
 }
