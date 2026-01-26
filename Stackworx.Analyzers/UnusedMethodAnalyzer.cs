@@ -65,7 +65,9 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
 
         // Top-level statements generate a synthetic 'Program' type.
         // We ignore methods in that type to avoid noisy diagnostics for minimal apps.
-        if (method.ContainingType is { Name: "Program", IsImplicitlyDeclared: true })
+        if (method is {
+                Name: WellKnownMemberNames.TopLevelStatementsEntryPointMethodName,
+                ContainingType.Name: WellKnownMemberNames.TopLevelStatementsEntryPointTypeName })
         {
             return;
         }

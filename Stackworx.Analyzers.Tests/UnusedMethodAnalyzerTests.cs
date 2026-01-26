@@ -32,6 +32,13 @@ public class UnusedMethodAnalyzerTests
         return test;
     }
 
+    private static CSharpAnalyzerTest<UnusedMethodAnalyzer, Microsoft.CodeAnalysis.Testing.DefaultVerifier> CreateExecutableTest(string source)
+    {
+        var test = CreateTest(source);
+        test.TestState.OutputKind = OutputKind.ConsoleApplication;
+        return test;
+    }
+
     [Fact]
     public async Task Reports_WhenMethodIsNeverReferenced()
     {
@@ -165,6 +172,24 @@ public class UnusedMethodAnalyzerTests
             """;
 
         var test = CreateTest(source);
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task DoesNotReport_WhenMethodIsReferencedFromTopLevelStatements()
+    {
+        var test = CreateExecutableTest("""
+            // Program.cs
+            AliveHelpers.Alive();
+            """);
+
+        test.TestState.Sources.Add(("AliveHelpers.cs", """
+            public static class AliveHelpers
+            {
+                public static void Alive() { }
+            }
+            """));
+
         await test.RunAsync();
     }
 }
