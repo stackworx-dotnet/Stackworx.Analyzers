@@ -99,6 +99,24 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // Ignore Azure Functions entry points.
+        if (HasAzureFunctionsWorkerFunctionAttribute(method))
+        {
+            return;
+        }
+
+        // Ignore HotChocolate DataLoader methods (used by source generators/runtime).
+        if (HasHotChocolateDataLoaderAttribute(method))
+        {
+            return;
+        }
+
+        // Ignore EF Core IEntityTypeConfiguration<T>.Configure implementations.
+        if (IsEfCoreEntityTypeConfigurationConfigureMethod(method))
+        {
+            return;
+        }
+
         // Respect JetBrains annotations.
         if (HasJetBrainsPublicApiOrUsedImplicitly(method) || HasJetBrainsPublicApiOrUsedImplicitly(method.ContainingType))
         {
@@ -340,5 +358,101 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
 
         // Compare by metadata name to avoid needing the hosting ref in the analyzer project.
         return containing.AllInterfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::Microsoft.Extensions.Hosting.IHostedService");
+    }
+
+    private static bool HasAzureFunctionsWorkerFunctionAttribute(ISymbol symbol)
+    {
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            var attrClass = attribute.AttributeClass;
+            if (attrClass is null)
+            {
+                continue;
+            }
+
+            // Attribute can be referenced as [Function] or [FunctionAttribute]
+            if (attrClass.Name is "FunctionAttribute" or "Function")
+            {
+                var full = attrClass.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                if (full.Equals("global::Microsoft.Azure.Functions.Worker.FunctionAttribute", StringComparison.Ordinal)
+                    || full.EndsWith(".Microsoft.Azure.Functions.Worker.FunctionAttribute", StringComparison.Ordinal)
+                    || full.EndsWith(".Functions.Worker.FunctionAttribute", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasHotChocolateDataLoaderAttribute(ISymbol symbol)
+    {
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            var attrClass = attribute.AttributeClass;
+            if (attrClass is null)
+            {
+                continue;
+            }
+
+            if (attrClass.Name is not ("DataLoaderAttribute" or "DataLoader"))
+            {
+                continue;
+            }
+
+            var full = attrClass.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            if (full.Equals("global::HotChocolate.DataLoaderAttribute", StringComparison.Ordinal)
+                || full.EndsWith(".HotChocolate.DataLoaderAttribute", StringComparison.Ordinal)
+                || full.EndsWith(".DataLoaderAttribute", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsEfCoreEntityTypeConfigurationConfigureMethod(IMethodSymbol method)
+    {
+        if (method.Name != "Configure" || method.Parameters.Length != 1)
+        {
+            return false;
+        }
+
+        // Must be an implementation of Microsoft.EntityFrameworkCore.IEntityTypeConfiguration<T>.Configure
+        // so we avoid ignoring random Configure(...) methods.
+        var p0 = method.Parameters[0].Type;
+        if (p0 is not INamedTypeSymbol namedParam)
+        {
+            return false;
+        }
+
+        // Expect EntityTypeBuilder<TEntity>
+        if (namedParam.Name != "EntityTypeBuilder" || namedParam.TypeArguments.Length != 1)
+        {
+            return false;
+        }
+
+        // Confirm containing namespace is Microsoft.EntityFrameworkCore.Metadata.Builders
+        if (namedParam.ContainingNamespace.ToDisplayString() != "Microsoft.EntityFrameworkCore.Metadata.Builders")
+        {
+            return false;
+        }
+
+        var containing = method.ContainingType;
+        if (containing is null)
+        {
+            return false;
+        }
+
+        // No SpecialType for IEntityTypeConfiguration<T>, so compare by metadata name.
+        return containing.AllInterfaces.Any(i =>
+            i.IsGenericType
+            && i.Name == "IEntityTypeConfiguration"
+            && i.TypeArguments.Length == 1
+            && i.ContainingNamespace.ToDisplayString() == "Microsoft.EntityFrameworkCore"
+            && i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                .StartsWith("global::Microsoft.EntityFrameworkCore.IEntityTypeConfiguration<", StringComparison.Ordinal));
     }
 }

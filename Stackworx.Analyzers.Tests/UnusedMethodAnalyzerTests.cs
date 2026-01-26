@@ -271,15 +271,125 @@ public class UnusedMethodAnalyzerTests
         const string source =
             """
             using System;
+            
+            namespace JetBrains.Annotations
+            {
+                [System.AttributeUsage(System.AttributeTargets.All, AllowMultiple = true)]
+                public sealed class UsedImplicitlyAttribute : System.Attribute { }
+            }
 
             public class C
             {
                 public void M() { }
 
+                [JetBrains.Annotations.UsedImplicitly]
                 public void Use()
                 {
                     Action a = this.M;
                     a();
+                }
+            }
+            """;
+
+        var test = CreateTest(source);
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task DoesNotReport_WhenMethodHasAzureFunctionsWorkerFunctionAttribute()
+    {
+        const string source =
+            """
+            using System;
+
+            namespace Microsoft.Azure.Functions.Worker
+            {
+                [AttributeUsage(AttributeTargets.Method)]
+                public sealed class FunctionAttribute : Attribute
+                {
+                    public FunctionAttribute(string name) { }
+                }
+            }
+
+            public static class Functions
+            {
+                [Microsoft.Azure.Functions.Worker.Function("MyFunc")]
+                public static void Run() { }
+            }
+            """;
+
+        var test = CreateTest(source);
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task DoesNotReport_WhenMethodHasHotChocolateDataLoaderAttribute()
+    {
+        const string source =
+            """
+            using System;
+
+            namespace HotChocolate
+            {
+                [AttributeUsage(AttributeTargets.Method)]
+                public sealed class DataLoaderAttribute : Attribute
+                {
+                    public DataLoaderAttribute(string? name = null) { }
+                }
+            }
+
+            public static class Loaders
+            {
+                [HotChocolate.DataLoader]
+                public static void LoadSomething() { }
+            }
+            """;
+
+        var test = CreateTest(source);
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task DoesNotReport_WhenMethodImplementsEfCoreEntityTypeConfigurationConfigure()
+    {
+        const string source =
+            """
+            namespace JetBrains.Annotations
+            {
+                [System.AttributeUsage(System.AttributeTargets.All, AllowMultiple = true)]
+                public sealed class UsedImplicitlyAttribute : System.Attribute { }
+            }
+            
+            namespace Microsoft.EntityFrameworkCore.Metadata
+            {
+                public interface IEntityType
+                {
+                }
+            }
+
+            namespace Microsoft.EntityFrameworkCore.Metadata.Builders
+            {
+                public class EntityTypeBuilder<TEntity> where TEntity : class { }
+            }
+
+            namespace Microsoft.EntityFrameworkCore
+            {
+                using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+                [JetBrains.Annotations.UsedImplicitly]
+                public interface IEntityTypeConfiguration<TEntity>
+                    where TEntity : class
+                {
+                    void Configure(EntityTypeBuilder<TEntity> builder);
+                }
+            }
+
+            public class User { }
+
+            public sealed class UserConfig : Microsoft.EntityFrameworkCore.IEntityTypeConfiguration<User>
+            {
+                public void Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<User> builder)
+                {
                 }
             }
             """;
