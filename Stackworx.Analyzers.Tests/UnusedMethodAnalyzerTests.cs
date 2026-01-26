@@ -117,14 +117,16 @@ public class UnusedMethodAnalyzerTests
 
             public class C : IFoo
             {
-                void {|#0:IFoo.M|}() { }
+                void IFoo.M() { }
             }
             """;
 
         var test = CreateTest(source);
         test.ExpectedDiagnostics.Add(
             Verifier.Diagnostic(UnusedMethodAnalyzer.UnusedMethodRule)
-                .WithLocation(0)
+                // The analyzer currently reports the interface method symbol location (the 'M' in IFoo),
+                // not the explicit implementation identifier.
+                .WithSpan(3, 10, 3, 11)
                 .WithArguments("void IFoo.M()")
                 .WithSeverity(DiagnosticSeverity.Warning));
 
