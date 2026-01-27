@@ -512,4 +512,91 @@ public class UnusedMethodAnalyzerTests
         var test = CreateTest(source);
         await test.RunAsync();
     }
+
+    [Fact]
+    public async Task DoesNotReport_WhenContainingTypeIsAnnotatedAsHotChocolateResolverType()
+    {
+        const string source =
+            """
+            namespace HotChocolate.Types
+            {
+                [System.AttributeUsage(System.AttributeTargets.Class)]
+                public sealed class QueryTypeAttribute : System.Attribute { }
+            }
+
+            [HotChocolate.Types.QueryType]
+            public sealed class QueryResolvers
+            {
+                public void DeadButFrameworkInvoked() { }
+            }
+            """;
+
+        var test = CreateTest(source);
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task DoesNotReport_WhenMethodHasXunitFactAttribute()
+    {
+        const string source =
+            """
+            namespace Xunit
+            {
+                [System.AttributeUsage(System.AttributeTargets.Method)]
+                public sealed class FactAttribute : System.Attribute { }
+            }
+
+            public sealed class Tests
+            {
+                [Xunit.Fact]
+                public void Test1() { }
+            }
+            """;
+
+        var test = CreateTest(source);
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task DoesNotReport_WhenTypeImplementsXunitIAsyncLifetime_ForInitializeAndDisposeAsync()
+    {
+        const string source =
+            """
+            using System.Threading.Tasks;
+            
+            namespace JetBrains.Annotations
+            {
+                [System.AttributeUsage(System.AttributeTargets.All, AllowMultiple = true)]
+                public sealed class PublicAPIAttribute : System.Attribute { }
+            }
+
+            namespace Xunit
+            {
+                [JetBrains.Annotations.PublicAPI]
+                public interface IAsyncLifetime
+                {
+                    Task InitializeAsync();
+                    Task DisposeAsync();
+                }
+            }
+
+            public sealed class Tests : Xunit.IAsyncLifetime
+            {
+                public Task InitializeAsync() => Task.CompletedTask;
+                public Task DisposeAsync() => Task.CompletedTask;
+
+                // Should still report normal unused methods.
+                public void {|#0:Dead|}() { }
+            }
+            """;
+
+        var test = CreateTest(source);
+        test.ExpectedDiagnostics.Add(
+            Verifier.Diagnostic(UnusedMethodAnalyzer.UnusedMethodRule)
+                .WithLocation(0)
+                .WithArguments("void Tests.Dead()")
+                .WithSeverity(DiagnosticSeverity.Warning));
+
+        await test.RunAsync();
+    }
 }
