@@ -28,6 +28,8 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
 
     public override void Initialize(AnalysisContext context)
     {
+        // Roslyn does not guarantee ordering between analyzer callbacks (symbol/operation/etc.) and
+        // may invoke them concurrently. This analyzer is implemented to be ordering-independent.
         if (!Debugger.IsAttached)
         {
             context.EnableConcurrentExecution();
@@ -39,23 +41,63 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
 
     private sealed class UsageState
     {
-        public readonly ConcurrentDictionary<IMethodSymbol, bool> Candidates = new(SymbolEqualityComparer.Default);
+        // Candidates are the methods we *might* report.
+        public readonly ConcurrentDictionary<IMethodSymbol, byte> Candidates = new(SymbolEqualityComparer.Default);
+
+        // Used contains *method symbols seen in the compilation* (recorded independently of candidate discovery).
+        public readonly ConcurrentDictionary<IMethodSymbol, byte> Used = new(SymbolEqualityComparer.Default);
     }
 
     private static void Start(CompilationStartAnalysisContext context)
     {
         var state = new UsageState();
 
-        // Collect method candidates.
         context.RegisterSymbolAction(c => CollectCandidate((IMethodSymbol)c.Symbol, state), SymbolKind.Method);
 
-        // Mark candidates as used based on method references in the compilation.
         context.RegisterOperationAction(c => MarkUsed(c, state),
             OperationKind.Invocation,
             OperationKind.MethodReference,
             OperationKind.DelegateCreation);
 
         context.RegisterCompilationEndAction(c => ReportUnused(c, state));
+    }
+
+    private static bool ShouldIgnoreCandidate(IMethodSymbol method)
+    {
+        var ns = method.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+        if (string.IsNullOrEmpty(ns))
+        {
+            return false;
+        }
+
+        // Same filtering concept as ShouldIgnoreUsage, but for candidates.
+        // In practice candidates are usually source-only anyway, but this also guards against
+        // edge cases (e.g., linked files / unusual compilations).
+
+        // Framework/BCL
+        if (ns.Equals("System", StringComparison.Ordinal)
+            || ns.StartsWith("System.", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // HotChocolate + friends
+        if (ns.Equals("HotChocolate", StringComparison.Ordinal)
+            || ns.StartsWith("HotChocolate.", StringComparison.Ordinal)
+            || ns.Equals("GreenDonut", StringComparison.Ordinal)
+            || ns.StartsWith("GreenDonut.", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // EF Core
+        if (ns.Equals("Microsoft.EntityFrameworkCore", StringComparison.Ordinal)
+            || ns.StartsWith("Microsoft.EntityFrameworkCore.", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static void CollectCandidate(IMethodSymbol method, UsageState state)
@@ -104,6 +146,13 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // Also ignore implicit interface implementations (e.g., 'void IFoo.M()' implemented as 'public void M()').
+        // Such methods can be invoked through an interface reference, so reporting them as unused is noisy.
+        if (IsImplicitInterfaceImplementation(method))
+        {
+            return;
+        }
+
         // Ignore Azure Functions entry points.
         if (HasAzureFunctionsWorkerFunctionAttribute(method))
         {
@@ -144,16 +193,22 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        state.Candidates.TryAdd(method, false);
-    }
-
-    private static void MarkUsed(OperationAnalysisContext context, UsageState state)
-    {
-        if (state.Candidates.IsEmpty)
+        // Extra perf/noise filter: don't even track candidates in common framework/library namespaces.
+        if (ShouldIgnoreCandidate(method))
         {
             return;
         }
 
+        // Normalize to original definition to reduce identity mismatches.
+        var key = method.OriginalDefinition;
+        state.Candidates.TryAdd(key, 0);
+
+        // If it was already observed as used (operation actions can run first), keep it used.
+        // We don't need to do anything else here because Used is a set.
+    }
+
+    private static void MarkUsed(OperationAnalysisContext context, UsageState state)
+    {
         IMethodSymbol? referenced = context.Operation switch
         {
             IInvocationOperation invocation => invocation.TargetMethod,
@@ -201,42 +256,65 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
         }
     }
 
+    private static bool ShouldIgnoreUsage(IMethodSymbol method)
+    {
+        var ns = method.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+        if (string.IsNullOrEmpty(ns))
+        {
+            return false;
+        }
+
+        // Framework/BCL
+        if (ns.Equals("System", StringComparison.Ordinal)
+            || ns.StartsWith("System.", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // HotChocolate + friends
+        if (ns.Equals("HotChocolate", StringComparison.Ordinal)
+            || ns.StartsWith("HotChocolate.", StringComparison.Ordinal)
+            || ns.Equals("GreenDonut", StringComparison.Ordinal)
+            || ns.StartsWith("GreenDonut.", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // EF Core
+        if (ns.Equals("Microsoft.EntityFrameworkCore", StringComparison.Ordinal)
+            || ns.StartsWith("Microsoft.EntityFrameworkCore.", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private static void MarkUsedSymbol(IMethodSymbol referenced, UsageState state)
     {
-        if (state.Candidates.ContainsKey(referenced))
+        // Normalize to original definition to match how candidates are stored.
+        var normalized = referenced.OriginalDefinition;
+
+        // Performance: ignore framework/library methods to keep the Used set small.
+        if (ShouldIgnoreUsage(normalized))
         {
-            state.Candidates[referenced] = true;
             return;
         }
 
-        // Handle comparing by OriginalDefinition for stored candidates.
-        foreach (var candidate in state.Candidates.Keys)
-        {
-            if (SymbolEqualityComparer.Default.Equals(candidate, referenced))
-            {
-                state.Candidates[candidate] = true;
-                return;
-            }
-
-            if (SymbolEqualityComparer.Default.Equals(candidate.OriginalDefinition, referenced.OriginalDefinition))
-            {
-                state.Candidates[candidate] = true;
-                return;
-            }
-        }
+        state.Used.TryAdd(normalized, 0);
     }
 
     private static void ReportUnused(CompilationAnalysisContext context, UsageState state)
     {
-        foreach (var kvp in state.Candidates.OrderBy(k => k.Key.Locations.FirstOrDefault()?.SourceTree?.FilePath, StringComparer.Ordinal)
-                     .ThenBy(k => k.Key.Locations.FirstOrDefault()?.SourceSpan.Start ?? 0))
+        foreach (var method in state.Candidates.Keys
+                     .OrderBy(m => m.Locations.FirstOrDefault()?.SourceTree?.FilePath, StringComparer.Ordinal)
+                     .ThenBy(m => m.Locations.FirstOrDefault()?.SourceSpan.Start ?? 0))
         {
-            if (kvp.Value)
+            if (state.Used.ContainsKey(method))
             {
                 continue;
             }
 
-            var method = kvp.Key;
             var location = method.Locations.FirstOrDefault();
             if (location is null)
             {
@@ -466,5 +544,48 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
             && i.ContainingNamespace.ToDisplayString() == "Microsoft.EntityFrameworkCore"
             && i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
                 .StartsWith("global::Microsoft.EntityFrameworkCore.IEntityTypeConfiguration<", StringComparison.Ordinal));
+    }
+
+    private static bool IsImplicitInterfaceImplementation(IMethodSymbol method)
+    {
+        var containing = method.ContainingType;
+        if (containing is null)
+        {
+            return false;
+        }
+
+        // Ignore common non-user-facing methods already filtered by MethodKind above.
+        if (method.MethodKind != MethodKind.Ordinary)
+        {
+            return false;
+        }
+
+        // Check whether any implemented interface member maps to this concrete method.
+        // Using OriginalDefinition keeps generic interface methods consistent.
+        foreach (var iface in containing.AllInterfaces)
+        {
+            foreach (var member in iface.GetMembers())
+            {
+                if (member is not IMethodSymbol interfaceMethod)
+                {
+                    continue;
+                }
+
+                // Skip explicit implementations (handled elsewhere).
+                if (interfaceMethod.MethodKind != MethodKind.Ordinary)
+                {
+                    continue;
+                }
+
+                var impl = containing.FindImplementationForInterfaceMember(interfaceMethod);
+                if (impl is IMethodSymbol implMethod
+                    && SymbolEqualityComparer.Default.Equals(implMethod.OriginalDefinition, method.OriginalDefinition))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

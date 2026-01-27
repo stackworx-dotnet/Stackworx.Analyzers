@@ -1,12 +1,13 @@
 namespace Stackworx.Analyzers;
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class GraphQLUnusedDataLoaderAnalyzer : DiagnosticAnalyzer
@@ -35,7 +36,11 @@ public sealed class GraphQLUnusedDataLoaderAnalyzer : DiagnosticAnalyzer
 
     private sealed class DataLoaderUsageState
     {
-        public readonly ConcurrentDictionary<INamedTypeSymbol, bool> Candidates = new(SymbolEqualityComparer.Default);
+        // Candidate interfaces that implement IDataLoader<,>
+        public readonly ConcurrentDictionary<INamedTypeSymbol, byte> Candidates = new(SymbolEqualityComparer.Default);
+
+        // Interfaces referenced somewhere in the compilation (recorded independently of candidate discovery)
+        public readonly ConcurrentDictionary<INamedTypeSymbol, byte> Used = new(SymbolEqualityComparer.Default);
     }
 
     private static void StartDataLoaderAnalysis(CompilationStartAnalysisContext context)
@@ -53,29 +58,37 @@ public sealed class GraphQLUnusedDataLoaderAnalyzer : DiagnosticAnalyzer
         // Collect interface candidates that implement IDataLoader<,>
         context.RegisterSymbolAction(c => CollectDataLoaderInterfaces(c, iDataLoader2, state), SymbolKind.NamedType);
 
-        // Track usages of those interfaces across syntax nodes
+        // Track usages of those interfaces across syntax nodes.
+        // IMPORTANT: syntax callbacks can run before symbol callbacks (and concurrently), so this must not depend on ordering.
         context.RegisterSyntaxNodeAction(c => TrackTypeSyntaxUsage(c, state),
             SyntaxKind.IdentifierName,
             SyntaxKind.QualifiedName);
 
-        // At compilation end, report any interfaces that were never referenced
-        context.RegisterCompilationEndAction(c =>
+        context.RegisterCompilationEndAction(c => ReportUnused(c, state));
+    }
+
+    private static void ReportUnused(CompilationAnalysisContext context, DataLoaderUsageState state)
+    {
+        foreach (var iface in state.Candidates.Keys
+                     .OrderBy(s => s.Locations.FirstOrDefault()?.SourceTree?.FilePath, StringComparer.Ordinal)
+                     .ThenBy(s => s.Locations.FirstOrDefault()?.SourceSpan.Start ?? 0))
         {
-            foreach (var kvp in state.Candidates)
+            if (state.Used.ContainsKey(iface))
             {
-                var iface = kvp.Key;
-                var used = kvp.Value;
-                if (!used)
-                {
-                    var location = iface.Locations.FirstOrDefault();
-                    if (location != null)
-                    {
-                        c.ReportDiagnostic(Diagnostic.Create(UnusedDataLoaderInterfaceRule, location,
-                            iface.ToDisplayString()));
-                    }
-                }
+                continue;
             }
-        });
+
+            var location = iface.Locations.FirstOrDefault();
+            if (location is null)
+            {
+                continue;
+            }
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                UnusedDataLoaderInterfaceRule,
+                location,
+                iface.ToDisplayString()));
+        }
     }
 
     private static void CollectDataLoaderInterfaces(
@@ -96,42 +109,35 @@ public sealed class GraphQLUnusedDataLoaderAnalyzer : DiagnosticAnalyzer
         }
 
         // Does it implement IDataLoader<,> ?
-        // Either directly or via inheritance chain.
         var implements = symbol.AllInterfaces.Any(i =>
             SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, iDataLoader2));
 
-        if (implements)
-        {
-            state.Candidates.TryAdd(symbol, false);
-        }
-    }
-
-    private static void TrackTypeSyntaxUsage(SyntaxNodeAnalysisContext context, DataLoaderUsageState state)
-    {
-        if (state.Candidates.IsEmpty)
+        if (!implements)
         {
             return;
         }
 
+        // Normalize to original definition for stable identity.
+        state.Candidates.TryAdd(symbol.OriginalDefinition, 0);
+    }
+
+    private static void TrackTypeSyntaxUsage(SyntaxNodeAnalysisContext context, DataLoaderUsageState state)
+    {
         // Ignore occurrences that are part of a base-type list (e.g. 'class C : IMyDataLoader')
-        // because class/interface declarations implementing/extending the interface shouldn't
-        // be considered a "usage" for the purpose of detecting unused IDataLoader interfaces.
+        // because implementing/extending an interface shouldn't be considered a "usage".
         if (context.Node.Ancestors().Any(a => a is BaseListSyntax || a is SimpleBaseTypeSyntax))
+        {
+            return;
+        }
+
+        // Ignore generic references like builder.AddDataLoader<,> / AddDataLoader<T1, T2>(...)
+        if (context.Node.Ancestors().Any(a => a is TypeArgumentListSyntax))
         {
             return;
         }
 
         var symbol = context.SemanticModel.GetSymbolInfo(context.Node).Symbol;
         if (symbol is not INamedTypeSymbol namedType)
-        {
-            return;
-        }
-        
-        // Ignore Generic References 
-        // like builder.AddDataLoader<,>
-        // if (context.Node.Parent is TypeArgumentListSyntax)
-        // Handle global:: etc.
-        if (context.Node.Ancestors().Any(a => a is TypeArgumentListSyntax))
         {
             return;
         }
@@ -144,21 +150,7 @@ public sealed class GraphQLUnusedDataLoaderAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // If this is one of our candidate DataLoader interfaces, mark as used
-        if (state.Candidates.ContainsKey(namedType))
-        {
-            state.Candidates[namedType] = true;
-            return;
-        }
-
-        // Handle constructed/aliased forms of the same interface
-        foreach (var candidate in state.Candidates.Keys)
-        {
-            if (SymbolEqualityComparer.Default.Equals(namedType.OriginalDefinition, candidate))
-            {
-                state.Candidates[candidate] = true;
-                break;
-            }
-        }
+        // Record usage independently of candidate discovery.
+        state.Used.TryAdd(namedType.OriginalDefinition, 0);
     }
 }
