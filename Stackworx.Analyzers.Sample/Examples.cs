@@ -3,8 +3,10 @@
 
 namespace Stackworx.Analyzers.Sample;
 
-// If you don't see warnings, build the Analyzers Project.
+using JetBrains.Annotations;
 
+// If you don't see warnings, build the Analyzers Project.
+[UsedImplicitly]
 public class Examples
 {
     public class MyCompanyClass // Try to apply quick fix using the IDE.

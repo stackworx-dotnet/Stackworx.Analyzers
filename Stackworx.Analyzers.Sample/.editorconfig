@@ -1,1 +1,5 @@
 dotnet_code_quality.NSINT.root_namespaces = Stackworx.Analyzers.Sample.Features;
+
+[*.cs]
+dotnet_diagnostic.SW002.severity = warning
+dotnet_diagnostic.SWGQL06.severity = none

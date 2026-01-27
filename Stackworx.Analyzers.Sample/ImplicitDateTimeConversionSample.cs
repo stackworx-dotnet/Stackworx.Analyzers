@@ -1,7 +1,9 @@
 namespace Stackworx.Analyzers.Sample;
 
 using System;
+using JetBrains.Annotations;
 
+[UsedImplicitly]
 public class ImplicitDateTimeConversionSample
 {
     public static void Run()

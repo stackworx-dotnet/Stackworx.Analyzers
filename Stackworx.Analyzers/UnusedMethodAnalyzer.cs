@@ -3,6 +3,7 @@ namespace Stackworx.Analyzers;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -27,7 +28,11 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
 
     public override void Initialize(AnalysisContext context)
     {
-        context.EnableConcurrentExecution();
+        if (!Debugger.IsAttached)
+        {
+            context.EnableConcurrentExecution();
+        }
+
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.RegisterCompilationStartAction(Start);
     }
@@ -130,6 +135,13 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
             {
                 return;
             }
+        }
+
+        // Ignore extension methods: their call-sites may exist in other projects/compilations and
+        // usage can be hard to infer reliably. Avoid noisy false positives.
+        if (method.IsExtensionMethod)
+        {
+            return;
         }
 
         state.Candidates.TryAdd(method, false);

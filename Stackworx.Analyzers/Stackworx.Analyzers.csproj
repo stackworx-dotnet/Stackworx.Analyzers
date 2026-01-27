@@ -4,11 +4,11 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
-        <Version>0.0.1-preview.21</Version>
+        <Version>0.0.1-preview.22</Version>
 
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsRoslynComponent>true</IsRoslynComponent>
-        <NoWarn>$(NoWarn);RS2007</NoWarn>
+        <NoWarn>$(NoWarn);RS2007;RS2008;</NoWarn>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
 

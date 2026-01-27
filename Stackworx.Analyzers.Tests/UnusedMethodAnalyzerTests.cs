@@ -12,13 +12,17 @@ using Verifier =
 
 public class UnusedMethodAnalyzerTests
 {
-    private static CSharpAnalyzerTest<UnusedMethodAnalyzer, Microsoft.CodeAnalysis.Testing.DefaultVerifier> CreateTest(string source)
+    private static CSharpAnalyzerTest<UnusedMethodAnalyzer, Microsoft.CodeAnalysis.Testing.DefaultVerifier> CreateTest(params string[] sources)
     {
         var test = new CSharpAnalyzerTest<UnusedMethodAnalyzer, Microsoft.CodeAnalysis.Testing.DefaultVerifier>
         {
             ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
-            TestCode = source,
         };
+
+        foreach (var source in sources)
+        {
+            test.TestState.Sources.Add(source);
+        }
 
         // The analyzer is disabled by default, so tests must enable it explicitly.
         test.TestState.AnalyzerConfigFiles.Add(("/.editorconfig",
@@ -391,6 +395,117 @@ public class UnusedMethodAnalyzerTests
                 public void Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<User> builder)
                 {
                 }
+            }
+            """;
+
+        var test = CreateTest(source);
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task DoesNotReport_WhenMethodIsExtensionMethod()
+    {
+        const string source =
+            """
+            public static class Extensions
+            {
+                public static void Ext(this string s)
+                {
+                }
+            }
+            """;
+
+        var test = CreateTest(source);
+        await test.RunAsync();
+    }
+    
+    [Fact]
+    public async Task DoesNotReport_WhenAsyncMethodOnClass()
+    {
+        const string fileA =
+            """
+            using System;
+            using System.Threading.Tasks;
+            
+            namespace JetBrains.Annotations
+            {
+                [System.AttributeUsage(System.AttributeTargets.All, AllowMultiple = true)]
+                public sealed class UsedImplicitlyAttribute : System.Attribute { }
+            }
+
+            public class C
+            {
+                public async Task Execute() { }
+            }
+            
+            """;
+
+        const string fileB = """
+                             using System;
+                             using System.Threading.Tasks;
+                             
+                             public class  Program {
+                                 private C c = new C();
+                             
+                                 [JetBrains.Annotations.UsedImplicitly]
+                                 public async Task Use() {
+                                     await this.c.Execute();
+                                 }
+                             }
+                             """;
+
+        var test = CreateTest(fileA, fileB);
+        await test.RunAsync();
+    }
+    
+    [Fact]
+    public async Task DoesNotReport_Issue1()
+    {
+        const string source =
+            """
+            namespace JetBrains.Annotations
+            {
+                [System.AttributeUsage(System.AttributeTargets.All, AllowMultiple = true)]
+                public sealed class UsedImplicitlyAttribute : System.Attribute { }
+            }
+            
+            namespace Stackworx.Analyzers.Sample
+            {
+            
+            using System.Threading.Tasks;
+            using JetBrains.Annotations;
+            
+            public class Unused
+            {
+                public double User1 => this.Method1();
+            
+                [UsedImplicitly]
+                public void Usage2()
+                {
+                    this.Method2();
+                }
+                
+                [UsedImplicitly]
+                public async Task Usage3()
+                {
+                    await this.Method3();
+                }
+                
+                private double Method1()
+                {
+                    return 0;
+                }
+                
+                private double Method2()
+                {
+                    return 0;
+                }
+                
+                private Task<double> Method3()
+                {
+                    return Task.FromResult(0.0);
+                }
+            }
             }
             """;
 

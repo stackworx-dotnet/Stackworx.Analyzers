@@ -2,6 +2,9 @@ using System;
 
 namespace Stackworx.Analyzers.Sample;
 
+using JetBrains.Annotations;
+
+[UsedImplicitly]
 public class Spaceship
 {
     public void SetSpeed(long speed)
