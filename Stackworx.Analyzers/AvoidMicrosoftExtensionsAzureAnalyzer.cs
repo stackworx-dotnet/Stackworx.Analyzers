@@ -30,7 +30,8 @@ public sealed class AvoidMicrosoftExtensionsAzureAnalyzer : DiagnosticAnalyzer
         category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: Description);
+        description: Description,
+        helpLinkUri: DiagnosticHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 

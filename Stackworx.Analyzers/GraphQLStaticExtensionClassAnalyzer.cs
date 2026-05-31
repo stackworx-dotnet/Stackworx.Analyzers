@@ -21,7 +21,8 @@ public class GraphQLStaticExtensionClassAnalyzer : DiagnosticAnalyzer
             Category,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
-            description: Description);
+            description: Description,
+            helpLinkUri: DiagnosticHelpLinks.For(DiagnosticId));
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 

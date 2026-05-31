@@ -18,7 +18,8 @@ public sealed class GraphQLStaticModifierExtensionMethodAnalyzer : DiagnosticAna
         category: "GraphQL.Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "GraphQL field extension methods must be instance methods when declared in non-static classes.");
+        description: "GraphQL field extension methods must be instance methods when declared in non-static classes.",
+        helpLinkUri: DiagnosticHelpLinks.For("SWGQL01"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         ImmutableArray.Create(StaticMethodInNonStaticClassRule);

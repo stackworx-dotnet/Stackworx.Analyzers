@@ -21,6 +21,7 @@ public sealed class GraphQLUnusedDataLoaderAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description:
         "Flags interfaces extending GreenDonut.IDataLoader that appear to be unused in the current compilation.",
+        helpLinkUri: DiagnosticHelpLinks.For("SWGQL02"),
         customTags: [WellKnownDiagnosticTags.CompilationEnd]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>

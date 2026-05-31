@@ -29,10 +29,10 @@ public sealed class NamespaceInternalAnalyzer : DiagnosticAnalyzer
         "Using directives that import a feature’s Internal namespace are restricted to that feature.";
 
     private static readonly DiagnosticDescriptor RuleReference = new(
-        Id_Reference, Title1, Message1, "Architecture", DiagnosticSeverity.Warning, isEnabledByDefault: true, description: Desc1);
+        Id_Reference, Title1, Message1, "Architecture", DiagnosticSeverity.Warning, isEnabledByDefault: true, description: Desc1, helpLinkUri: DiagnosticHelpLinks.For(Id_Reference));
 
     private static readonly DiagnosticDescriptor RuleUsing = new(
-        Id_Using, Title2, Message2, "Architecture", DiagnosticSeverity.Warning, isEnabledByDefault: true, description: Desc2);
+        Id_Using, Title2, Message2, "Architecture", DiagnosticSeverity.Warning, isEnabledByDefault: true, description: Desc2, helpLinkUri: DiagnosticHelpLinks.For(Id_Using));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         ImmutableArray.Create(RuleReference, RuleUsing);

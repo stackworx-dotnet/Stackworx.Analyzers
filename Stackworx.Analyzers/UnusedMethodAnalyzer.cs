@@ -21,6 +21,7 @@ public sealed class UnusedMethodAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: false,
         description:
             "Flags methods that have no call sites in the current compilation. Methods annotated with JetBrains.Annotations.PublicAPI or JetBrains.Annotations.UsedImplicitly (or whose containing type is annotated) are ignored.",
+        helpLinkUri: DiagnosticHelpLinks.For("SW002"),
         customTags: [WellKnownDiagnosticTags.CompilationEnd]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
