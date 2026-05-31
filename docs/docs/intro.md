@@ -56,6 +56,9 @@ dotnet_diagnostic.SWGQL03.severity = error
 
 # Change a rule to warning (default)
 dotnet_diagnostic.SWGQL01.severity = warning
+
+# Enable rules that are disabled by default
+dotnet_diagnostic.SW002.severity = warning  # Unused method (disabled by default — see SW002 docs for caveats)
 ```
 
 ## Verification
