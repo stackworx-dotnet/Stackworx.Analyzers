@@ -1,6 +1,8 @@
 namespace Stackworx.Analyzers.Tests;
 
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.CSharp.Testing;
+using Microsoft.CodeAnalysis.Testing;
 using Xunit;
 using Verifier =
     Microsoft.CodeAnalysis.CSharp.Testing.CSharpAnalyzerVerifier<
@@ -11,22 +13,31 @@ public class AvoidMicrosoftExtensionsAzureAnalyzerTests
 {
     private const string FakeAzureNamespace =
         """
-        namespace Microsoft.Extensions.Azure;
-        public sealed class AzureMarker { }
+        namespace Microsoft.Extensions.Azure
+        {
+            public sealed class AzureMarker { }
+        }
+        """;
+
+    private const string FakeServiceCollection =
+        """
+        namespace Microsoft.Extensions.DependencyInjection
+        {
+            public interface IServiceCollection { }
+            public sealed class ServiceCollection : IServiceCollection { }
+        }
         """;
 
     private const string FakeAzureExtensions =
         """
-        namespace Microsoft.Extensions.DependencyInjection;
-        public interface IServiceCollection { }
-        public sealed class ServiceCollection : IServiceCollection { }
-
-        namespace Microsoft.Extensions.Azure;
-        using Microsoft.Extensions.DependencyInjection;
-
-        public static class AzureClientFactoryBuilderExtensions
+        namespace Microsoft.Extensions.Azure
         {
-            public static IServiceCollection AddAzureClients(this IServiceCollection services) => services;
+            using Microsoft.Extensions.DependencyInjection;
+
+            public static class AzureClientFactoryBuilderExtensions
+            {
+                public static IServiceCollection AddAzureClients(this IServiceCollection services) => services;
+            }
         }
         """;
 
@@ -40,11 +51,18 @@ public class AvoidMicrosoftExtensionsAzureAnalyzerTests
             class C { }
             """;
 
-        var expected = Verifier
-            .Diagnostic(Stackworx.Analyzers.AvoidMicrosoftExtensionsAzureAnalyzer.Rule)
-            .WithLocation(0);
+        var test = new CSharpAnalyzerTest<Stackworx.Analyzers.AvoidMicrosoftExtensionsAzureAnalyzer, Microsoft.CodeAnalysis.Testing.DefaultVerifier>
+        {
+            ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
+            TestCode = src,
+        };
+        test.TestState.Sources.Add(FakeAzureNamespace);
+        test.ExpectedDiagnostics.Add(
+            Verifier
+                .Diagnostic(Stackworx.Analyzers.AvoidMicrosoftExtensionsAzureAnalyzer.Rule)
+                .WithLocation(0));
 
-        await Verifier.VerifyAnalyzerAsync([src, FakeAzureNamespace], expected);
+        await test.RunAsync();
     }
 
     [Fact]
@@ -57,16 +75,24 @@ public class AvoidMicrosoftExtensionsAzureAnalyzerTests
                 void M()
                 {
                     Microsoft.Extensions.DependencyInjection.IServiceCollection services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
-                    Microsoft.Extensions.Azure.AzureClientFactoryBuilderExtensions.{|#0:AddAzureClients|}(services);
+                    {|#0:Microsoft.Extensions.Azure.AzureClientFactoryBuilderExtensions.AddAzureClients(services)|};
                 }
             }
             """;
 
-        var expected = Verifier
-            .Diagnostic(Stackworx.Analyzers.AvoidMicrosoftExtensionsAzureAnalyzer.Rule)
-            .WithLocation(0);
+        var test = new CSharpAnalyzerTest<Stackworx.Analyzers.AvoidMicrosoftExtensionsAzureAnalyzer, Microsoft.CodeAnalysis.Testing.DefaultVerifier>
+        {
+            ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
+            TestCode = src,
+        };
+        test.TestState.Sources.Add(FakeServiceCollection);
+        test.TestState.Sources.Add(FakeAzureExtensions);
+        test.ExpectedDiagnostics.Add(
+            Verifier
+                .Diagnostic(Stackworx.Analyzers.AvoidMicrosoftExtensionsAzureAnalyzer.Rule)
+                .WithLocation(0));
 
-        await Verifier.VerifyAnalyzerAsync([src, FakeAzureExtensions], expected);
+        await test.RunAsync();
     }
 
     [Fact]
@@ -84,8 +110,10 @@ public class AvoidMicrosoftExtensionsAzureAnalyzerTests
                 }
             }
 
-            namespace Microsoft.Extensions.Azureish;
-            public sealed class AzureMarker { }
+            namespace Microsoft.Extensions.Azureish
+            {
+                public sealed class AzureMarker { }
+            }
             """;
 
         await Verifier.VerifyAnalyzerAsync(src);
