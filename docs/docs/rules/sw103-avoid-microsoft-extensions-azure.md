@@ -40,10 +40,67 @@ Use this checklist when migrating code flagged by SW103:
 5. Remove `using Microsoft.Extensions.Azure;` once all references are migrated.
 6. Validate startup and integration tests to ensure each keyed binding resolves correctly.
 
-### Typical replacement direction
+### Code samples
 
-- **Before:** `services.AddAzureClients(builder => ...);`
-- **After:** register Azure SDK clients directly as keyed services and resolve by key where needed.
+#### Registration — before (`AddAzureClients`)
+
+```csharp
+// Program.cs / Startup.cs
+using Microsoft.Extensions.Azure;
+
+builder.Services.AddAzureClients(clients =>
+{
+    clients.AddBlobServiceClient(builder.Configuration.GetSection("AzureStorage:Blob"))
+           .WithName("blob-storage");
+
+    clients.AddQueueServiceClient(builder.Configuration.GetSection("AzureStorage:Queue"))
+           .WithName("order-queue");
+});
+```
+
+#### Registration — after (keyed services)
+
+```csharp
+// Program.cs / Startup.cs
+// No Microsoft.Extensions.Azure import required
+
+builder.Services.AddKeyedSingleton<BlobServiceClient>("blob-storage", (sp, _) =>
+    new BlobServiceClient(
+        builder.Configuration.GetConnectionString("BlobStorage")));
+
+builder.Services.AddKeyedSingleton<QueueServiceClient>("order-queue", (sp, _) =>
+    new QueueServiceClient(
+        builder.Configuration.GetConnectionString("OrderQueue")));
+```
+
+#### DI callsite — before (`IAzureClientFactory<T>`)
+
+```csharp
+public class BlobUploadService
+{
+    private readonly BlobServiceClient _blobClient;
+
+    public BlobUploadService(IAzureClientFactory<BlobServiceClient> factory)
+    {
+        _blobClient = factory.CreateClient("blob-storage");
+    }
+}
+```
+
+#### DI callsite — after (keyed injection)
+
+```csharp
+public class BlobUploadService
+{
+    private readonly BlobServiceClient _blobClient;
+
+    public BlobUploadService(
+        [FromKeyedServices("blob-storage")] BlobServiceClient blobClient)
+    {
+        _blobClient = blobClient;
+    }
+}
+```
 
 ### Suggested review points after migration
 
