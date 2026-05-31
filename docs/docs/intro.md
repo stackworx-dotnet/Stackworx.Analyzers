@@ -20,12 +20,12 @@ Add the package reference to your `.csproj` file:
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="Stackworx.Analyzers" Version="*" PrivateAssets="all" />
+  <PackageReference Include="Stackworx.Analyzers" Version="*" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 </ItemGroup>
 ```
 
 :::note
-The `PrivateAssets="all"` attribute ensures the analyzer package is only used for analysis and isn't included as a dependency when your project is referenced by others.
+The `OutputItemType="Analyzer"` and `ReferenceOutputAssembly="false"` attributes ensure the package is used only for analysis and is not included as a runtime dependency.
 :::
 
 ## Configuration
@@ -56,6 +56,9 @@ dotnet_diagnostic.SWGQL03.severity = error
 
 # Change a rule to warning (default)
 dotnet_diagnostic.SWGQL01.severity = warning
+
+# Enable rules that are disabled by default
+dotnet_diagnostic.SW002.severity = warning  # Unused method (disabled by default — see SW002 docs for caveats)
 ```
 
 ## Verification
