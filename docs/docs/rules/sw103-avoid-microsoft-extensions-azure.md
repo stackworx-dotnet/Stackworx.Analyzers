@@ -105,6 +105,7 @@ public class BlobUploadService
 ### Suggested review points after migration
 
 - Every previous `name:`/`WithName(...)` registration has a corresponding keyed registration.
+- Prefer keyed singleton registrations for Azure SDK clients; avoid adding a default unkeyed registration for the same client type.
 - No remaining references to `Microsoft.Extensions.Azure` types (`IAzureClientFactory<>`, builder types, extension methods).
 - Key names are centralized and reused consistently.
 - Resource keys align with Aspire integration naming.
