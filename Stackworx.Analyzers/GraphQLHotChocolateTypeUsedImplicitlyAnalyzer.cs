@@ -21,7 +21,8 @@ public sealed class GraphQLHotChocolateTypeUsedImplicitlyAnalyzer : DiagnosticAn
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description:
-        "HotChocolate GraphQL types are often discovered via reflection. Mark them with [JetBrains.Annotations.UsedImplicitly] so IDE analyzers don't flag them as unused.");
+        "HotChocolate GraphQL types are often discovered via reflection. Mark them with [JetBrains.Annotations.UsedImplicitly] so IDE analyzers don't flag them as unused.",
+        helpLinkUri: DiagnosticHelpLinks.For("SWGQL05"));
 
     public static readonly DiagnosticDescriptor UsedImplicitlyOnNonGraphQLTypeRule = new(
         id: "SWGQL06",
@@ -32,6 +33,7 @@ public sealed class GraphQLHotChocolateTypeUsedImplicitlyAnalyzer : DiagnosticAn
         isEnabledByDefault: true,
         description:
         "Prefer limiting [UsedImplicitly] to types that are actually discovered implicitly (e.g., HotChocolate GraphQL types).",
+        helpLinkUri: DiagnosticHelpLinks.For("SWGQL06"),
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>

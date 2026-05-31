@@ -19,6 +19,7 @@ public sealed class GraphQLDuplicateFieldAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         description: "Detects duplicate extension fields for the same type across [ExtendObjectType<T>] extension classes.",
+        helpLinkUri: DiagnosticHelpLinks.For("SWGQL04"),
         customTags: [WellKnownDiagnosticTags.CompilationEnd]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
