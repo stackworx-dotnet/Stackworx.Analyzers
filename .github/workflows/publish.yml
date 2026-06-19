@@ -11,7 +11,7 @@ on:
     inputs:
       version:
         description: "Package version to publish (e.g. 1.2.3 or 1.2.3-preview.1)"
-        required: true
+        required: false
         type: string
 
 jobs:
