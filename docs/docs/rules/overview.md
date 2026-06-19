@@ -21,6 +21,7 @@ This page provides a comprehensive table of all available Stackworx analyzers an
 | [SW101](./sw101-forbidden-namespace-reference)             | Forbidden reference to feature-internal namespace | Architecture | Warning | Prevents references to feature-internal namespaces from outside the feature. |
 | [SW102](./sw102-forbidden-namespace-using)                 | Forbidden using to feature-internal namespace | Architecture | Warning | Prevents using directives that import feature-internal namespaces from outside. |
 | [SW103](./sw103-avoid-microsoft-extensions-azure)          | Avoid Microsoft.Extensions.Azure usage | Architecture | Warning | Detects Microsoft.Extensions.Azure usage and guides migration to keyed services. |
+| [SWBLZ01](./swblz01-unused-blazor-component)               | Blazor component appears unused | Blazor | Warning | Flags ComponentBase-derived classes that are never rendered or referenced (ignores routable `@page` and layout components). |
 
 ## Rules by Category
 
@@ -39,3 +40,6 @@ This page provides a comprehensive table of all available Stackworx analyzers an
 - [SW101 - Forbidden reference to feature-internal namespace](./sw101-forbidden-namespace-reference)
 - [SW102 - Forbidden using to feature-internal namespace](./sw102-forbidden-namespace-using)
 - [SW103 - Avoid Microsoft.Extensions.Azure usage](./sw103-avoid-microsoft-extensions-azure)
+
+### Blazor Rules
+- [SWBLZ01 - Blazor component appears unused](./swblz01-unused-blazor-component)
