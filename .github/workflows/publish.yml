@@ -8,11 +8,6 @@ on:
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Package version to publish (e.g. 1.2.3 or 1.2.3-preview.1)"
-        required: false
-        type: string
 
 jobs:
   publish:
@@ -37,22 +32,24 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "release" ]; then
             VERSION="${GITHUB_REF_NAME#v}"
-          else
-            VERSION="${{ inputs.version }}"
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Publishing version $VERSION"
+          echo "Publishing version ${VERSION:-<csproj version>}"
 
       - name: Restore
         run: dotnet restore Stackworx.Analyzers/Stackworx.Analyzers.csproj
 
       - name: Pack
-        run: >
-          dotnet pack Stackworx.Analyzers/Stackworx.Analyzers.csproj
-          --configuration Release
-          --no-restore
-          -p:Version=${{ steps.version.outputs.version }}
-          --output ${{ github.workspace }}/artifacts
+        run: |
+          VERSION_ARG=""
+          if [ -n "${{ steps.version.outputs.version }}" ]; then
+            VERSION_ARG="-p:Version=${{ steps.version.outputs.version }}"
+          fi
+          dotnet pack Stackworx.Analyzers/Stackworx.Analyzers.csproj \
+            --configuration Release \
+            --no-restore \
+            $VERSION_ARG \
+            --output ${{ github.workspace }}/artifacts
 
       # Request a short-lived NuGet API key via OIDC. Set the NUGET_USER repo
       # variable to your nuget.org username (profile name, NOT your email).
