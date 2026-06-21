@@ -1,0 +1,40 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Roslyn analyzer/code-fix dependencies. Kept in lockstep with the Roslyn
+      version shipped in the .NET 10 SDK so the analyzer binds against the
+      consumer's compiler at runtime. Do not bump independently of the SDK floor
+      declared in global.json.
+    -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.3.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="5.3.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="5.3.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.3.0" />
+
+    <!-- MEF composition for code fixes. Matches the transitive version pulled by Roslyn Workspaces 5.3.0. -->
+    <PackageVersion Include="System.Composition.AttributedModel" Version="9.0.0" />
+    <PackageVersion Include="System.Composition.Runtime" Version="9.0.0" />
+
+    <!-- Polyfills so the netstandard2.0 components can use newer C# language features. -->
+    <PackageVersion Include="PolySharp" Version="1.16.0" />
+
+    <!-- Test harness -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.4" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" Version="1.1.4" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.6.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+
+    <!-- Sample app — exercises the analyzer against a real HotChocolate project. -->
+    <PackageVersion Include="HotChocolate.AspNetCore" Version="15.1.14" />
+    <PackageVersion Include="HotChocolate.Types.Analyzers" Version="15.1.14" />
+    <PackageVersion Include="JetBrains.Annotations" Version="2026.2.0" />
+  </ItemGroup>
+
+</Project>

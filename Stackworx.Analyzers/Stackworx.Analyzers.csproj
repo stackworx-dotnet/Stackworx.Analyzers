@@ -2,10 +2,10 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <LangVersion>latest</LangVersion>
+        <!-- Read and bumped by the publish workflow; keep this exact element here. -->
         <Version>0.0.1-preview.28</Version>
 
+        <IsPackable>true</IsPackable>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsRoslynComponent>true</IsRoslynComponent>
         <NoWarn>$(NoWarn);RS2007;RS2008;</NoWarn>
@@ -20,19 +20,17 @@
         <None Include="../README.md" Pack="true" PackagePath="\"/>
         <None Include="../LICENSE" Pack="true" PackagePath="\" Condition="Exists('..\\LICENSE')" />
     </ItemGroup>
+
     <ItemGroup>
-        <!-- https://github.com/dotnet/roslyn-analyzers/issues/7438#issuecomment-3351205949 -->
-<!--        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.14.0" />-->
-        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0">
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <!-- Use older version to prevent conflicts -->
-        <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.3.0" PrivateAssets="all" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.0" PrivateAssets="all" />
-        <PackageReference Include="PolySharp" Version="1.15.0">
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-          <PrivateAssets>all</PrivateAssets>
+        <PackageReference Include="Microsoft.CodeAnalysis.Common" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+        <PackageReference Include="PolySharp">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
         </PackageReference>
     </ItemGroup>
 

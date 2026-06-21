@@ -1,0 +1,12 @@
+<Project>
+
+  <!-- Shared settings for every project in the repository. -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+
+    <!-- Nothing is packable by default; the analyzer package opts in explicitly. -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

@@ -93,7 +93,7 @@ public sealed class GraphQLHotChocolateTypeUsedImplicitlyCodeFixProvider : CodeF
 
         // Be defensive: treat both `using X;` and `using X = ...;` as already having the namespace.
         var exists = root.Usings.Any(u =>
-            string.Equals(u.Name.ToString(), namespaceName, StringComparison.Ordinal));
+            string.Equals(u.Name?.ToString(), namespaceName, StringComparison.Ordinal));
         if (exists)
         {
             return;
