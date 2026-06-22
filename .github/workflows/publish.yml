@@ -37,7 +37,7 @@ jobs:
           echo "Publishing version ${VERSION:-<csproj version>}"
 
       - name: Restore
-        run: dotnet restore Stackworx.Analyzers/Stackworx.Analyzers.csproj
+        run: dotnet restore Stackworx.Analyzers.Package/Stackworx.Analyzers.Package.csproj
 
       - name: Pack
         run: |
@@ -45,7 +45,9 @@ jobs:
           if [ -n "${{ steps.version.outputs.version }}" ]; then
             VERSION_ARG="-p:Version=${{ steps.version.outputs.version }}"
           fi
-          dotnet pack Stackworx.Analyzers/Stackworx.Analyzers.csproj \
+          # Single package: the .Package project bundles both the analyzer and
+          # the code-fix DLLs into analyzers/dotnet/cs.
+          dotnet pack Stackworx.Analyzers.Package/Stackworx.Analyzers.Package.csproj \
             --configuration Release \
             --no-restore \
             $VERSION_ARG \
@@ -76,7 +78,7 @@ jobs:
           git fetch origin "$DEFAULT_BRANCH"
           git checkout "$DEFAULT_BRANCH"
 
-          FILE="Stackworx.Analyzers/Stackworx.Analyzers.csproj"
+          FILE="Stackworx.Analyzers.Package/Stackworx.Analyzers.Package.csproj"
           CURRENT_VERSION=$(grep -oE '<Version>[^<]+' "$FILE" | sed 's#<Version>##' | head -n1)
 
           if [[ ! "$CURRENT_VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-preview\.([0-9]+)$ ]]; then

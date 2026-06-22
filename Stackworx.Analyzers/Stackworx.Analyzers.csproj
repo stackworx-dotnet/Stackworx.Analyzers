@@ -2,24 +2,19 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
-        <!-- Read and bumped by the publish workflow; keep this exact element here. -->
-        <Version>0.0.1-preview.28</Version>
 
-        <IsPackable>true</IsPackable>
+        <!-- Not packed on its own; Stackworx.Analyzers.Package bundles this DLL. -->
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsRoslynComponent>true</IsRoslynComponent>
         <NoWarn>$(NoWarn);RS2007;RS2008;</NoWarn>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
 
         <RootNamespace>Stackworx.Analyzers</RootNamespace>
         <AssemblyName>Stackworx.Analyzers</AssemblyName>
+        <!-- Never published; disambiguates the restore graph from the
+             Stackworx.Analyzers.Package project, which owns the published id.
+             The DLL name stays Stackworx.Analyzers via AssemblyName above. -->
+        <PackageId>Stackworx.Analyzers.Analyzer</PackageId>
     </PropertyGroup>
-
-    <ItemGroup>
-        <None Include="../README.md" Pack="true" PackagePath="\"/>
-        <None Include="../LICENSE" Pack="true" PackagePath="\" Condition="Exists('..\\LICENSE')" />
-    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
@@ -49,14 +44,6 @@
         </Compile>
     </ItemGroup>
 
-    <!-- Publishing -->
-    <ItemGroup>
-        <!-- Put the analyzer assembly into analyzers/dotnet/cs -->
-        <None Include="$(OutputPath)$(AssemblyName).dll"
-              Pack="true"
-              PackagePath="analyzers/dotnet/cs"
-              Visible="false" />
-    </ItemGroup>
     <ItemGroup>
       <AdditionalFiles Remove="AnalyzerReleases.Shipped.md" />
       <AdditionalFiles Remove="AnalyzerReleases.Unshipped.md" />

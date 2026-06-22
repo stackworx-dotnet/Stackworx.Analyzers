@@ -3,6 +3,9 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
 
+        <!-- A separate assembly so the analyzer DLL stays free of the Workspaces
+             references that code fixes require (RS1022). Not packed on its own;
+             Stackworx.Analyzers.Package bundles this DLL alongside the analyzer. -->
         <IsRoslynComponent>true</IsRoslynComponent>
         <NoWarn>$(NoWarn);RS2007</NoWarn>
         <RootNamespace>Stackworx.Analyzers.Fixes</RootNamespace>

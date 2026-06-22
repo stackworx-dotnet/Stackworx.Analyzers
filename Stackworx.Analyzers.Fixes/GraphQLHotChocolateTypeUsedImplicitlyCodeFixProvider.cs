@@ -12,13 +12,15 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
+using Microsoft.CodeAnalysis.Formatting;
+using Microsoft.CodeAnalysis.Simplification;
 
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(GraphQLHotChocolateTypeUsedImplicitlyCodeFixProvider))]
 [Shared]
 public sealed class GraphQLHotChocolateTypeUsedImplicitlyCodeFixProvider : CodeFixProvider
 {
     public override ImmutableArray<string> FixableDiagnosticIds =>
-        ImmutableArray.Create(GraphQLHotChocolateTypeUsedImplicitlyAnalyzer.MissingUsedImplicitlyRule.Id);
+        [GraphQLHotChocolateTypeUsedImplicitlyAnalyzer.MissingUsedImplicitlyRule.Id];
 
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
@@ -63,46 +65,33 @@ public sealed class GraphQLHotChocolateTypeUsedImplicitlyCodeFixProvider : CodeF
             return document;
         }
 
-        var editor = await DocumentEditor.CreateAsync(document, cancellationToken).ConfigureAwait(false);
-
-        // Add using JetBrains.Annotations; if not present and if we can.
-        // For files with no namespace or regular namespace decls, this is safe.
-        // For file-scoped namespaces, DocumentEditor still handles it.
-        AddUsingIfMissing(editor, "JetBrains.Annotations");
-
-        // Prefer short name once using is present.
-        var usedImplicitlyAttr = SyntaxFactory.Attribute(SyntaxFactory.IdentifierName("UsedImplicitly"));
-
-        var newTypeDecl = typeDecl.AddAttributeLists(
-            SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(usedImplicitlyAttr))
-                .WithTrailingTrivia(SyntaxFactory.ElasticCarriageReturnLineFeed));
-
-        editor.ReplaceNode(typeDecl, newTypeDecl);
-
-        // Ensure formatting.
-        return editor.GetChangedDocument();
-    }
-
-    private static void AddUsingIfMissing(DocumentEditor editor, string namespaceName)
-    {
-        var root = editor.OriginalRoot as CompilationUnitSyntax;
+        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root is null)
         {
-            return;
+            return document;
         }
 
-        // Be defensive: treat both `using X;` and `using X = ...;` as already having the namespace.
-        var exists = root.Usings.Any(u =>
-            string.Equals(u.Name?.ToString(), namespaceName, StringComparison.Ordinal));
-        if (exists)
-        {
-            return;
-        }
+        // Add the attribute fully qualified and annotated. ImportAdder then inserts the
+        // matching `using JetBrains.Annotations;` in the file's preferred location
+        // (respecting file-scoped namespaces and `csharp_using_directive_placement`, so
+        // it won't trip StyleCop SA1200), and Simplifier shortens the name back down to
+        // `[UsedImplicitly]`.
+        var attributeList = SyntaxFactory.AttributeList(
+                SyntaxFactory.SingletonSeparatedList(
+                    SyntaxFactory.Attribute(SyntaxFactory.ParseName("JetBrains.Annotations.UsedImplicitly"))))
+            .WithTrailingTrivia(SyntaxFactory.ElasticLineFeed)
+            .WithAdditionalAnnotations(Simplifier.Annotation, Formatter.Annotation);
 
-        // Add it to the compilation unit and let normal formatting place it correctly.
-        var newRoot = root.AddUsings(
-            SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(namespaceName)));
+        var newTypeDecl = typeDecl.AddAttributeLists(attributeList);
+        var newDocument = document.WithSyntaxRoot(root.ReplaceNode(typeDecl, newTypeDecl));
 
-        editor.ReplaceNode(root, newRoot);
+        newDocument = await ImportAdder
+            .AddImportsAsync(newDocument, Simplifier.Annotation, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        newDocument = await Simplifier
+            .ReduceAsync(newDocument, Simplifier.Annotation, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+
+        return newDocument;
     }
 }

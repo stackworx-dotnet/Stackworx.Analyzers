@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <!-- Read and bumped by the publish workflow; keep this exact element here. -->
+        <Version>0.0.1-preview.28</Version>
+
+        <!-- This project produces the single Stackworx.Analyzers NuGet package that
+             bundles both the analyzer and the code-fix assemblies into
+             analyzers/dotnet/cs. It has no code of its own. -->
+        <PackageId>Stackworx.Analyzers</PackageId>
+        <IsPackable>true</IsPackable>
+
+        <!-- Don't ship this project's (empty) assembly; only the bundled DLLs.
+             SuppressDependenciesWhenPacking + NoPackageAnalysis because the
+             package carries the DLLs directly and declares no NuGet dependencies. -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+        <NoPackageAnalysis>true</NoPackageAnalysis>
+
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+
+        <!-- Bundle the analyzer + code-fix DLLs into analyzers/dotnet/cs. -->
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddAnalyzersToOutput</TargetsForTfmSpecificContentInPackage>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="../README.md" Pack="true" PackagePath="\" />
+        <None Include="../LICENSE" Pack="true" PackagePath="\" Condition="Exists('..\\LICENSE')" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Build both components. PrivateAssets keeps their package references
+             from flowing; the DLLs are shipped directly (see the target below). -->
+        <ProjectReference Include="..\Stackworx.Analyzers\Stackworx.Analyzers.csproj" PrivateAssets="all" />
+        <ProjectReference Include="..\Stackworx.Analyzers.Fixes\Stackworx.Analyzers.Fixes.csproj" PrivateAssets="all" />
+    </ItemGroup>
+
+    <Target Name="_AddAnalyzersToOutput">
+        <ItemGroup>
+            <TfmSpecificPackageFile Include="$(OutputPath)\Stackworx.Analyzers.dll" PackagePath="analyzers/dotnet/cs" />
+            <TfmSpecificPackageFile Include="$(OutputPath)\Stackworx.Analyzers.Fixes.dll" PackagePath="analyzers/dotnet/cs" />
+        </ItemGroup>
+    </Target>
+
+</Project>

@@ -26,15 +26,18 @@ NuGet package and consume it from a private feed.
 
 ### 1. Pack a local build
 
-Pack the analyzer into a `.nupkg`. Override the version so it sorts above the published one and is
-easy to spot:
+Pack the **`Stackworx.Analyzers.Package`** project into a `.nupkg`. Override the version so it sorts
+above the published one and is easy to spot:
 
 ```sh
-dotnet pack Stackworx.Analyzers -c Release -o ./local-nuget -p:Version=0.0.1-local.1
+dotnet pack Stackworx.Analyzers.Package/Stackworx.Analyzers.Package.csproj -c Release -o ./local-nuget -p:Version=0.0.1-local.1
 ```
 
-The `.csproj` already maps the built assembly into `analyzers/dotnet/cs`, so the resulting package
-behaves exactly like the one on NuGet.org.
+Pack this project, not `Stackworx.Analyzers` — it's the one that bundles **both** the analyzer and the
+code-fix assemblies (`Stackworx.Analyzers.dll` + `Stackworx.Analyzers.Fixes.dll`) into
+`analyzers/dotnet/cs`. Packing `Stackworx.Analyzers` directly ships only the analyzer, so diagnostics
+appear but the code fixes don't. This is the same project the publish workflow packs, so the resulting
+package behaves exactly like the one on NuGet.org.
 
 ### 2. Add the folder as a NuGet source
 
