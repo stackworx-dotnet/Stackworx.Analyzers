@@ -25,6 +25,7 @@ public sealed class BlazorUnusedComponentAnalyzer : DiagnosticAnalyzer
             "attribute) and layout components (deriving from LayoutComponentBase) are ignored because " +
             "they are reachable indirectly. Components annotated with JetBrains.Annotations.UsedImplicitly " +
             "or JetBrains.Annotations.PublicAPI are also ignored.",
+        helpLinkUri: DiagnosticHelpLinks.For("SWBLZ01"),
         customTags: [WellKnownDiagnosticTags.CompilationEnd]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>

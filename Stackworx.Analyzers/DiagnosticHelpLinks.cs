@@ -28,6 +28,8 @@ internal static class DiagnosticHelpLinks
             "swgql04-graphql-duplicate-extension-field",
         "SWGQL05" or "SWGQL06" =>
             "swgql05-06-hotchocolate-types-usedimplicitly",
+        "SWBLZ01" =>
+            "swblz01-blazor-unused-component",
         _ => throw new ArgumentOutOfRangeException(nameof(diagnosticId), diagnosticId, "No documentation link configured."),
     });
 }
