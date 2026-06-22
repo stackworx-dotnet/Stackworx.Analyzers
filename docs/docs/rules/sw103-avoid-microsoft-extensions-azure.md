@@ -64,13 +64,19 @@ builder.Services.AddAzureClients(clients =>
 // Program.cs / Startup.cs
 // No Microsoft.Extensions.Azure import required
 
-builder.Services.AddKeyedSingleton<BlobServiceClient>("blob-storage", (sp, _) =>
-    new BlobServiceClient(
-        builder.Configuration.GetConnectionString("BlobStorage")));
+builder.Services.AddAzureBlobClient("blob-storage");
+builder.Services.AddAzureQueueClient("order-queue");
+builder.Services.AddAzureTableClient("order-table");
+```
 
-builder.Services.AddKeyedSingleton<QueueServiceClient>("order-queue", (sp, _) =>
-    new QueueServiceClient(
-        builder.Configuration.GetConnectionString("OrderQueue")));
+These Aspire wrappers keep the same resource key naming story and register keyed clients that can be resolved with `[FromKeyedServices("...")]`.
+
+```csharp
+public class QueueWorker(
+    [FromKeyedServices("order-queue")] QueueServiceClient queueClient,
+    [FromKeyedServices("order-table")] TableServiceClient tableClient)
+{
+}
 ```
 
 #### DI callsite — before (`IAzureClientFactory<T>`)
@@ -112,8 +118,12 @@ public class BlobUploadService
 
 ## Related Documentation
 
-- Aspire Azure Storage Blobs integration (keyed/resource-oriented approach):  
-  https://aspire.dev/integrations/cloud/azure/azure-storage-blobs/azure-storage-blobs-connect/#blob-storage-resource
+- Aspire Azure Storage Blobs client:  
+  https://aspire.dev/integrations/cloud/azure/azure-storage-blobs/azure-storage-blobs-client/
+- Aspire Azure Storage Queues client:  
+  https://aspire.dev/integrations/cloud/azure/azure-storage-queues/azure-storage-queues-client/
+- Aspire Azure Data Tables client:  
+  https://aspire.dev/integrations/cloud/azure/azure-data-tables/azure-data-tables-client/
 - Azure SDK discussion:  
   https://github.com/Azure/azure-sdk-for-net/issues/40408#issuecomment-3599496883
 - Azure SDK follow-up issue:  
